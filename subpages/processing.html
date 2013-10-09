@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <script src="http://d3js.org/d3.v3.min.js"></script>
+ <link rel="stylesheet" href="homepage_style.css" />
+ <title>Ralf Klammer - Processing</title>
+ <style>
+ div p{
+ 	color:rgb(100,0,0);
+ }
+ li p{
+ 	color:rgb(0,255,0);
+ }
+ </style>
+</head>
+<body id='frame_body'>
+	<div id="highlight">
+	<b><a class="myLinks" href='http://processing.org/'>Processing</a></b>
+	  <ul>
+		<li>Visualisation of world wide earthquakes in 2009 </li>
+		<ul>
+			<li><a class="myLinks" href="../../applet_v3/" target=blank_>
+					<img src="https://raw.github.com/milkbread/ProcessingStuff/master/geotest3/animation_3.png" alt="animation_3" width=25%>
+				</a>
+				<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/geotest3" target=blank_>project repository</a>
+			</li>
+			<li><a class="myLinks" href="../../applet_v4/" target=blank_>
+					<img src="https://raw.github.com/milkbread/ProcessingStuff/master/geotest4/animation_4.png" alt="animation_4" width=25%>
+				</a>
+				<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/geotest4" target=blank_>project repository</a>
+			</li>
+			<li><a class="myLinks" href="../../applet_v5/" target=blank_>
+					<img src="https://raw.github.com/milkbread/ProcessingStuff/master/geotest5_scroll/animation_5.png" alt="animation_5" width=25%>
+				</a>
+				<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/geotest5_scroll" target=blank_>project repository</a>
+			</li>
+		</ul><br>
+		Alternative: <a class="myLinks" href='http://bl.ocks.org/milkbread/raw/5720205/'>JavaScript-Version</a><br><br>
+		(Basic  <a class="myLinks" href="http://geo.ebp.ch/2012/01/19/geo-processing-teil-3-animierte-geovisualisierung-mit-processing/">source/idea</a>)
+	
+	  </ul>
+	  <ul>
+		<li>Different projects using the <a href="http://unfoldingmaps.org/" target=blank_>Unfolding</a> library to visualise tile based maps</li>
+		<p>(The following projects are not available as servlet, as it is not simply possible to load external data (map tiles) in a browser-servlet! <a href="http://forum.processing.org/one/topic/unfolding-and-tilemill-problem-with-applet-export.html" target=blank_>(see here)</a><br>
+		If you want to test them, you have to download the project and execute them locally in 'Processing'!)</p>
+		<ul>
+			<li>Cool maps</li>
+			<ul>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/unfolding_tilesNscaleATtileMill" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/unfolding_tilesNscaleATtileMill/tilesNscaleATtileMill.png" alt="tilesNscaleATtileMill" width=50%>
+					</a>
+				...map of saxonian vogtland ... streamed from <a href="http://www.mapbox.com/tilemill/" target=blank_>TileMill</a> ... calculating and visualising the map scale
+				</li>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/unfolding_tilesNscalesNanimation" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/unfolding_tilesNscalesNanimation/scalesNanimation.png" alt="scalesNanimation" width=50%>
+					</a>
+				...world map of earthquakes in 2009 ... streamed from web ... calculating an visualising the map scale
+				</li>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/unfolding_tilesNscale" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/unfolding_tilesNscale/tilesNscale.png" alt="tilesNscale" width=50%>
+					</a>
+				</li>
+				...world map ... streamed from web ... calculating an visualising the map scale
+			</ul><br>
+			<li>2 ways to stream map tiles</li>
+			<ul>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/unfolding_tilesATmbtiles" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/unfolding_tilesATmbtiles/tilesAtmbtiles.png" alt="tilesAtmbtiles" width=25%>
+					</a>
+				...via <a href="http://www.mapbox.com/developers/mbtiles/" target=blank_>'mbtiles'</a>
+				</li>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/unfolding_tilesATtileMill" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/unfolding_tilesATtileMill/tilesATtileMill.png" alt="tilesATtileMill" width=25%>
+					</a>
+				...via '<a href="http://www.mapbox.com/tilemill/" target=blank_>TileMill</a>'-direct-stream
+				</li>
+			</ul><br>
+			<li>Multiple Maps...</li>
+			<ul>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/unfolding_tilesNmultipleMaps" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/unfolding_tilesNmultipleMaps/tilesNmultipleMaps.png" alt="tilesNmultipleMaps" width=25%>
+					</a>
+				...3 maps
+				</li>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/unfolding_tilesNmultipleMaps_0_1" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/unfolding_tilesNmultipleMaps_0_1/tilesNmultipleMaps_0.1.png" alt="tilesNmultipleMaps_0.1" width=25%>
+					</a>
+				...1st pre-stage
+				</li>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/unfolding_tilesNmultipleMaps_0_2" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/unfolding_tilesNmultipleMaps_0_2/tilesNmultipleMap_0.2.png" alt="tilesNmultipleMap_0.2" width=25%>
+					</a>
+				...2nd pre-stage
+				</li>
+			</ul><br>
+			<li>Managing markers...</li>
+			<ul>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/unfolding_mapNmarker" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/unfolding_mapNmarker/mapNmarker.png" alt="mapNmarker" width=25%>
+					</a>
+				...a static and a dynimic marker (unmanaged)
+				</li>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/unfolding_tilesNmarkerManager" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/unfolding_tilesNmarkerManager/tilesNmarkerManager.png" alt="tilesNmarkerManager" width=25%>
+					</a>
+				...marker manager
+				</li>
+			</ul><br>
+			<li>Scales in tile-based maps (respectively mercator-projection)...</li>
+			<ul>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/unfolding_tilesNscaleBar" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/unfolding_tilesNscaleBar/tilesNscaleBar.png" alt="tilesNscaleBar" width=25%>
+					</a>
+				...1st experiment
+				</li>
+			</ul><br>
+			<li>Just for tests...</li>
+			<ul>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/unfolding_tilesNgenerativeExperiment" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/unfolding_tilesNgenerativeExperiment/tilesNgenerativeExperiment.png" alt="tilesNgenerativeExperiment" width=25%>
+					</a>
+				...a generative experiment
+				</li>
+			</ul><br>
+					
+		  </ul>	     
+	  	</ul>
+	  	<ul>
+			<li>Working with geometric data</li>
+			<ul>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/geo_points" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/geo_points/geo_points.png" alt="geo_points" width=25%>
+					</a>
+					...points ... static ... from csv
+				</li>
+				<li>
+					<p>This is also available as <a href="../../geo_lines2_applet/" target=blank_>applet</a>!</p>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/geo_lines2" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/geo_lines2/geolines2.gif" alt="geolines2" width=50%>
+					</a>
+					...lines ... sequential (automatic) visualisation ... from csv
+				</li>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/geo_lines3" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/geo_lines3/geolines3.png" alt="geolines3" width=50%>
+					</a>
+					...lines ... interactive visualisation ... from PostGIS
+				</li>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/geo_lines3_generic" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/geo_lines3_generic/geolines3_generic.png" alt="geolines3_generic" width=25%>
+					</a>
+					...lines ... interactive visualisation ... from PostGIS ... generic code
+					<br><p>This is work in progress...not working currently!<p>
+				</li>
+			</ul><br>		
+	  	</ul>
+	  	<ul>
+			<li>Test/Experiments with pure Processing Stuff</li>
+			<ul>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/pixels" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/pixels/pixels1.png" alt="pixels1" width=10%>
+					</a>
+					...random pixels
+				</li>
+				<li>
+					<a class="myLinks" href="https://github.com/milkbread/ProcessingStuff/tree/master/pixels2_2" target=blank_>
+						<img src="https://raw.github.com/milkbread/ProcessingStuff/master/pixels2_2/pixels2_2.png" alt="pixels2_2" width=10%>
+					</a>
+					...grey-scaled pixels
+				</li>
+			</ul><br>		
+	  	</ul>
+
+	<br>You can do so many <a class="myLinks" href='http://vimeo.com/10199455' target='blank_'>cool things</a> with Processing!
+	</div>
+
+	
+	
+<script>
+
+</script>
+</body>
