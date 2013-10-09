@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <script src="http://d3js.org/d3.v3.min.js"></script> 
+ <script src="../static/topojson_v1.js"></script>
+ <script src="../static/RKMapping_0.3.js"></script>
+ <script src="../static/leaflet.js"></script>
+ <script src="../simplify_test/simplify_RK_1.0.js"></script>
+
+<style>
+  @import url(../static/myStyles.css);
+  @import url(../static/leaflet.css?0.5);
+
+ #map {
+   width: 960px;
+   height: 600px;
+  }
+#polys:hover{
+ fill:rgba(200,0,0,0.8);
+}
+#polys{
+ stroke-width:1px;
+ stroke:rgba(0,0,0,0.8);
+}
+.overlay_poly{
+ fill:rgba(100,100,100,0.3);
+}
+.overlay_multipoly{
+ fill:rgba(0,0,0,0.7);
+}
+</style>
+</head>
+<body>
+<h1>ArcGeometries + Simplify <br>- Time Measurement -</h1>
+<h1 class=sub>analysing the benefit on performance for pre-generalised ArcGeometries</h1>
+<table>
+<tr>
+<td>Select a file<div id=Selection></div>Reset parameter for<br>dynamic simplification<div><input type=text id=maxVal name=maxVal onChange=reShow(value) value=0></div></td>
+<td><div id=general_info></div><div id=count_info></div><div id=count_info2></div><div id=time_info></div><div id=time_mean></div></td>
+<td></td>
+</tr>
+<tr>
+</tr>
+</table>
+
+
+<div id=map></div>
+<div id=add_info></div>
+<div id=text>Check out the three different simplification options and their effect on the processing time, respectively on the performance of the application!
+<br>Simplification options:
+<ul><li>None --> Nothing is Generalised<br>(Hint: select a file with 'no_generalisation')</li>
+<li>On Upload --> Generalised ArcGeometries - the points of each ArcGeometry get filtered directly when created <br>(Hint: select a file with 'full_generalisation')</li>
+<li>Dynamic --> Generalised Features - the points of each Feature are filtered dynamically when visualised<br>(Hint: select a file with 'no_generalisation' and reset the parameter)</li></ul>
+<br>Additionally, you've got the option to choose between a 'clipped_version' and the 'full_version' of the available dataset. This data is provided by german NMA (BKG) and free <a href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=eng&gdz_akt_zeile=5&gdz_anz_zeile=1&gdz_unt_zeile=18&gdz_user_id=0" rel="author" class="myLinks" target="_blank">downloadable</a>.
+<br><br>
+!Notice: I basically, asume the testing with the maximum amount of simplification in this test situation. That means the simplification parameter is set to '10' when you select a feature marked with 'full_generalisation'! You can vary this parameter within the dynamic simplification, but using a value different from '10' is the example not fully comparable to the 'On Upload' option!
+</div>
+
+<script>
+var initVal = window.location.search.replace("?","").split(":"),
+	timeVis = d3.select("#time_info").append("text").text("Timer"),
+	countVis = d3.select("#count_info").append("text").text("Arc counter"),
+	countVis2 = d3.select("#count_info2").append("text").text("Feature counter"),
+	timeMean = d3.select("#time_mean").append("text").text("Mean Time"),
+	generalVis = d3.select("#general_info").append("text");
+
+if(initVal[0]=="full_version" )var map = L.map('map').setView([49.5537, 7.7783], 8);
+	else var map = L.map('map').setView([49.5537, 7.7783], 8);
+
+var stamen = L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.png', {attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 <a href="http://maps.stamen.com/#toner/8/51.072/14.584" rel="author" target="_blank"> Stamen</a>, Data-overlay: <a href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=eng&gdz_akt_zeile=5&gdz_anz_zeile=1&gdz_unt_zeile=18&gdz_user_id=0" rel="author" target="_blank">&copy; GeoBasis-DE / BKG 2013</a>'}).addTo(map),	
+	baseLayers = {"stamen": stamen};
+L.control.layers(baseLayers).addTo(map);
+
+var overLayer = new mapOverlay(map),
+	infoContainer = d3.select("#add_info").append("info").text("This will show you some information!");
+
+var simplify = d3.simplify()
+	.projection(function (x) {return x;});
+var maximum = 0;
+var test = "hallo"
+
+//define the file that will be used for the visualisation
+if (initVal[1]==undefined) generalVis.text("Visualising the clipped_version with no_generalisation");
+else generalVis.text("Visualising the "+initVal[0]+" with "+initVal[1]);
+if(initVal[0]=="full_version" )var file="static/vg250_gem_topo.json";
+else var file="static/vg250_clipped_topo.json";
+
+var completeTimer = [0,0];
+
+d3.json(file, function(error, topology) {
+	//define the appropriate object
+	if(initVal[0]=="full_version" ) var pure_states = topology.objects.vg250_gem;
+	else var pure_states = topology.objects.vg250_gem_clipped;
+	if (initVal[1]=="full_generalisation")var simply_param = 10;
+	else var simply_param = 0;
+	
+	//get all arc-geometries of the selected objects 'pure_states'...can be simplified directly
+	var arcCollection = getArcs(topology, pure_states.geometries, [simplify, simply_param]);
+
+	var counter = [0,0]
+	for (arc in arcCollection){
+		counter[0]++;
+		counter[1] = counter[1]+arcCollection[arc].coordinates.length
+	}
+	countVis.text("Initial Arcs: "+counter[0]+", Points: "+counter[1])
+	var polygons = getGeometries(pure_states.geometries, arcCollection)
+	var polyCollection = {type: 'GeometryCollection', geometries:polygons}
+
+	overLayer.addGeometries(polygons,"path");
+	reset();
+	map.on("viewreset", reset);
+	overLayer.features.attr("class",function(d){if(d.type==="Polygon")return "overlay_poly"; else if(d.type==="MultiPolygon") return "overlay_multipoly"})
+			.attr("id","polys")
+			.on("mouseover",showInfo)
+			.on("mousedown",zoomToObject);
+
+	function reset(){
+		var start_time = Date.now();
+		overLayer.resetView(d3.geo.bounds(polyCollection));
+		var counter2 = overLayer.showAllFiltered(maximum);
+		countVis2.text("Visualised Features: "+counter2[0]+", Points(complete): "+counter2[1]+ ", Points(filtered): "+counter2[2])
+		var timer = ((Date.now() - start_time)/1000).toFixed(2);
+		completeTimer[0]++;
+		completeTimer[1] = completeTimer[1] + parseFloat(timer);
+		timeMean.text("Resets (total): "+completeTimer[0]+" that makes an arithmetic mean of: "+(completeTimer[1]/completeTimer[0]).toFixed(2))
+		timeVis.text("Resetting the visualisation took: "+timer+"s");
+	}
+	function showInfo(value){
+		infoContainer.text("You hovered over: "+value.properties.GEN +' click it and see what happens!')
+	}
+     	function zoomToObject(d){
+		var local_bounds = d3.geo.bounds(d),
+		center = new L.LatLng(local_bounds[0][1]+((local_bounds[1][1]-local_bounds[0][1])/2),local_bounds[0][0]+((local_bounds[1][0]-local_bounds[0][0])/2)),
+		southWest = new L.LatLng(local_bounds[0][1], local_bounds[0][0]),
+		northEast = new L.LatLng(local_bounds[1][1], local_bounds[1][0]);
+		var local_bounds = new L.LatLngBounds(southWest, northEast);
+		map.setView( center, map.getBoundsZoom( local_bounds));
+	}
+
+})
+
+//add the Selection
+var table = d3.select("#Selection").append("table").append("tr")
+var selector = table.append("td").append("form").attr("name","depthForm").append("select").attr("name","depthSel").attr("onChange","changedVersion(value)").attr("size","3");
+selector.selectAll("option").data(["clipped_version:no_generalisation","clipped_version:full_generalisation", "full_version:no_generalisation", "full_version:full_generalisation"]).enter().append("option").attr("value",function(d){return d;}).text(function(d){return d}).attr("name",function(d){return d})
+function changedVersion(value){ window.location.search=value }
+
+
+function reShow(maxVal){
+	maximum = maxVal;	
+	var counter2 = overLayer.showAllFiltered(maxVal);	
+	countVis2.text("Visualised Features: "+counter2[0]+", Points(complete): "+counter2[1]+ ", Points(filtered): "+counter2[2])
+}
+
+</script>
+<footer>
+  <aside>May 17, 2013</aside>
+  <a href="../index.html" rel="author" class="myLinks">Ralf Klammer</a>
+</footer>
+</body>
+</html>

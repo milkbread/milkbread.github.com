@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <script src="http://d3js.org/d3.v3.min.js"></script> 
+ <script src="static/topojson.js"></script>
+ <script src="static/leaflet.js"></script>
+
+<style>
+  @import url(./static/myStyles.css);
+
+#view{
+  overflow-x: auto;
+  overflow-y: auto;
+  padding-bottom: 15px;
+  max-width: 100%;
+}
+h{
+ font-size:24px;
+ text-decoration:underline;
+}
+div#text_table{background-color:#ff00ff;}
+div.table { display:table; border-collapse:collapse; }
+div.tr { display:table-row; }
+div.td { display:table-cell; border:none; padding:5px; background-color:rgb(80%,80%,80%);}
+div.td2 { display:table-cell; border:none; padding:5px;}
+.state, .circles{
+ fill:rgb(90%,50%,0%);
+}
+.state{
+ stroke:#fff;
+}
+.state:hover{
+ stroke:#ff0000;
+ fill-opacity:0.3;}
+.rank, .attrib{
+ font-family:sans-serif;
+}
+.attrib{
+ fill:rgb(40%,40%,40%);
+ font-size:16px;
+}
+.rank{
+ align:left;
+ font-size:11px;
+ fill:white;
+}
+</style>
+</head>
+<h1>Sorted municipalities</h1>
+<h1 class=sub>visualizes the german municipalities sorted, according to a selectable attribute</h1>
+<body>
+	<div id="text" class="upper">
+	Basically, the dataset is so big, that it does not make sense to show all municipalities!<br>
+	That is why you've got the option to filter the data in relation to the displayed attributes!<br>
+		<form class="attributes">
+		  <h>Choose an attribute!</h><br><br>
+		    <input type="radio" name="rbt_attrib" value="Area" onChange="changedRB(value)" checked> Area<br>
+		    <input type="radio" name="rbt_attrib" value="Length" onChange="changedRB(value)"> Length of Boundary<br>
+		    <input type="radio" name="rbt_attrib" value="EWZ" onChange="changedRB(value)"> Population<br>
+		 </form><br>
+	</div>
+	<div id="view"></div>
+<div id="text">
+Jason Davies gave me the inspiration to make this application, by his <a class="myLinks" href="http://www.jasondavies.com/maps/countries-by-area/" target="_blank"> 'Countries by Area'</a>  Visualisation<br>
+Data (VG250) is provided by the german NMA: <a class="myLinks" href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=deu&gdz_akt_zeile=5&gdz_anz_zeile=1&gdz_unt_zeile=15&gdz_user_id=0" target="_blank"> GeoBasis-DE / BKG</a>
+<br>Mike Bostocks scripts <a class="myLinks" href="http://d3js.org/" target="_blank">D3.js</a> and  <a class="myLinks" href="https://github.com/mbostock/topojson" target="_blank">TopoJSON</a> are used to realize the visualization!
+<br>Help on sorting arrays in JavaScript:  <a class="myLinks" href="http://www.javascriptkit.com/javatutors/arraysort.shtml" target="_blank">JavaScriptKit.com</a>
+</div>
+<footer>
+  <aside>May 07, 2013</aside>
+  <a href="../index.html" rel="author" class="myLinks">Ralf Klammer</a>
+</footer>
+<script>
+//all needed variables
+var 	bounds, w_view = 960, h_view = 280, w_svg = 280, h_svg = 240, scale = 250, trans =[0.75,0.25], attribute = 'Area', geoms, slice_cache1, slice_cache2, slice_par, 
+	slice_params = [0,12000], min_attribs = [200,0,0], //[Area, Length, EWZ]
+	path = d3.geo.path().projection(normalize_projection);
+//define the initial element
+d3.select("#view").style("width",w_view).style("height",h_view);
+//add the parameter for the filtering of attributes
+setInfoText();
+
+//add a table ('div - class:table') to the width-limited div-element 'view'
+//...and...
+//add one line ('div - class:tr')
+var table = d3.select("#view").append("div").attr("class","table").append("div").attr("class","tr");
+var states, units, munics;
+d3.json("static/vg250_gem_topo.json", function(error, topology) {
+	states = topojson.object(topology, topology.objects.vg250_bld);
+	units = topojson.object(topology, topology.objects.vg250_krs);
+	//console.log(topology.objects);
+	munics = topojson.object(topology, topology.objects.vg250_gem);
+	console.log(munics.geometries[0].properties)
+	geoms = munics.geometries;
+	slice_cache1 = slice_par.append("slice");
+	slice_par.append("br")
+	slice_cache2 = slice_par.append("slice");
+	doVisualisation();
+})
+function changedAP(value,name){
+	console.log(name, value);
+	if(name==='min_ewz'){min_attribs[2]=value;} 
+	else if(name==='min_area'){min_attribs[0]=value;}
+	else if(name==='min_length'){min_attribs[1]=value;}
+	else if(name==='min')slice_params[0]=value; 
+	else if(name==='max')slice_params[1]=value; 
+	doVisualisation();}
+function changedRB(value){attribute=value; doVisualisation();}
+function doVisualisation(){
+	var sliced_geoms = geoms.slice(slice_params[0],slice_params[1])
+	sliced_geoms = sliced_geoms.filter(function(d){return d.properties.EWZ>min_attribs[2] && d.properties.SHAPE_AREA>(min_attribs[0]*1000000) && d.properties.LENGTH>(min_attribs[1]*1000);});
+	slice_cache1.text("Total number of municipalities = "+geoms.length);
+	slice_cache2.text("...after slice = "+sliced_geoms.length)
+	//sort Polygons in relation to a chosen attribute
+	sliced_geoms = sortPolygons(sliced_geoms,attribute);
+//	console.log(sliced_geoms[0].properties)
+	//add one row for each element in the data_array ('div - class:td')
+	//...and...
+	//one svg-element per row
+	table.selectAll("div").remove();
+	var svg_containers = table.selectAll("div").data(sliced_geoms).enter().append("div").attr("class","td").attr("id",function(d,i){return d.properties.GEN}).append("svg").attr("height",h_svg).attr("width",w_svg).attr("id",function(d,i){return d.properties.GEN});
+	//add one circle to each svg
+	svg_containers.append("circle").attr("cx", "20").attr("cy", "170").attr("r", "10").attr("class", "circles");
+	//add the rank to each svg
+	svg_containers.append("text").text(function(d,i){return i}).attr("x", 15).attr("y",172).attr("class", "rank");
+	//add the Name of the state to each svg
+	svg_containers.append("text").text(function(d){return d.properties.GEN}).attr("x", 15).attr("y",200).attr("class","attrib");
+	//add the chosen attribute value of state to each svg
+	svg_containers.append("text")
+		.text(function(d){
+			if(attribute==='EWZ')return "EWZ: "+ d.properties.EWZ+" inhabitants"; 
+			else if(attribute==='Area')return "Area: "+ (d.properties.SHAPE_AREA/1000000).toFixed(2)+" km²"
+			else if(attribute==='Length')return "Length: "+ (d.properties.LENGTH/1000).toFixed(2)+" km"})
+		.attr("x", 15).attr("y",220).attr("class","attrib");
+	//add one group per svg respectively div...makes it easier to handle the scaling	
+	var groups = svg_containers.append("g").attr("transform","scale("+scale+")");
+	//add the state to the group...flip horizontal geometry by scale(1,-1)
+	groups.append("path").attr("class", "state").style("stroke-width",1/scale + "px").attr("transform","translate("+trans[0]+","+trans[1]+") scale(1,-1)").attr("d",function(d){
+			//reset the global variable 'bounds' as it used within the 'normalize_projection'
+			bounds=d3.geo.bounds(d);
+			var new_path = path({type: d.type, coordinates: d.coordinates})
+			return new_path;
+	});
+}
+function sortPolygons(data, attrib){
+	//push all values to an array
+	if(attrib==='EWZ')var new_array = data.map(function(d){return d.properties.EWZ});
+	else if(attrib==='Area')var new_array = data.map(function(d){return d.properties.SHAPE_AREA});
+	else if(attrib==='Length')var new_array = data.map(function(d){return d.properties.LENGTH});
+	//sort the new array --> Help:http://www.javascriptkit.com/javatutors/arraysort.shtml
+	new_array=new_array.sort(function(a,b){return b - a});
+	//find the related attribute in the data an push it to a new data-array
+	var new_data = new_array.map(function(value){
+		var cache;
+		data.forEach(function(d){
+			if(attrib==='EWZ'){if(value===d.properties.EWZ)cache=d}
+			else if(attrib==='Area'){if(value===d.properties.SHAPE_AREA)cache=d}
+			else if(attrib==='Length'){if(value===d.properties.LENGTH)cache=d}
+		})
+		//return the found dataset to the new data-array
+		return cache;
+	})
+	//return the sorted data-array
+	return new_data;
+}
+//this projection normalizes the geometry...to fit into the div-svg
+function normalize_projection(x) {return [x[0]-bounds[1][0],x[1]-bounds[1][1]];}
+
+//this function adds and defines the additional parameters for the pre-filtering
+function setInfoText(){
+	//add information on slice parameter
+	d3.select("#text.upper").append("h").text("Filtering");
+	var slice_table = d3.select("#text.upper").append("div").attr("class","table").append("div").attr("class","tr");
+	slice_par = slice_table.append("div").attr("class","td2");
+	slice_par.append("slice").text("Slice parameter (filter index)");
+	slice_par.append("br");
+	slice_par.append("input").attr("type","text").attr("size","5").attr("name","min").attr("value",slice_params[0]).attr("onChange","changedAP(value,name)");
+	slice_par.append("slice").text(" - ");
+	slice_par.append("input").attr("type","text").attr("size","5").attr("name","max").attr("value",slice_params[1]).attr("onChange","changedAP(value,name)");
+	slice_par.append("br")
+	var slice_par2 = slice_table.append("div").attr("class","td2");
+	//add information on pre-filtering
+	slice_par2.append("slice").text("Minimum values of attributes");
+	slice_par2.append("br");
+	slice_par2.append("attribs").text("Area: ");
+	slice_par2.append("input").attr("type","text").attr("size","10").attr("name","min_area").attr("value",min_attribs[0]).attr("onChange","changedAP(value,name)");
+	slice_par2.append("attribs").text(" km²");
+	slice_par2.append("br");
+	slice_par2.append("attribs").text("Length: ");
+	slice_par2.append("input").attr("type","text").attr("size","5").attr("name","min_length").attr("value",min_attribs[1]).attr("onChange","changedAP(value,name)");
+	slice_par2.append("attribs").text(" km");
+	slice_par2.append("br");
+	slice_par2.append("attribs").text("EWZ: ");
+	slice_par2.append("input").attr("type","text").attr("size","5").attr("name","min_ewz").attr("value",min_attribs[2]).attr("onChange","changedAP(value,name)");
+}
+
+</script>
+
+</body>
+</html>

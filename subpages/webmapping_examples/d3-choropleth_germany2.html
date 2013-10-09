@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+ <script src="http://d3js.org/d3.v3.min.js"></script>
+ <script src="static/leaflet.js"></script>
+ <script src="simplify_test/simplify_RK_1.0.js"></script>
+ <script src="simplify_test/topojson.v0_RK_1.0.js"></script>
+
+ <style>
+  @import url(static/leaflet.css?0.5);
+  @import url(./static/myStyles.css);
+  #map {
+   width: 960px;
+   height: 600px;
+  }
+ .info{
+   fill:#fff;
+   text-anchor:left;
+   font-family:sans-serif;
+   font-size:14px;
+  }
+  path {
+   stroke:#000;
+   stroke-width: 1px;
+  }
+  path:hover {
+   fill: rgba(0%,100%,0%,.1);
+  }
+  #krs{
+   stroke:rgba(255,0,0,0.2);
+   stroke-width:1;
+  }
+  #gem{
+   stroke:rgba(0,0,0,0.05);
+   stroke-width:1;
+  }
+  #bld{
+   stroke:rgba(0,0,0,0.5);
+   stroke-width:1;
+  }
+  .cat0{ fill:rgb(255,255,178);}
+  .cat1{ fill:rgb(254,217,118);} 
+  .cat2{ fill:rgb(254,178,76);}
+  .cat3{ fill:rgb(253,141,60);}
+  .cat4{ fill:rgb(240,59,32);}
+  .cat5{ fill:rgb(189, 0, 38);}
+  tr {
+    text-align:left;
+    vertical-align:top;
+  }
+  #selector{ stroke:#000; fill-opacity:0.5;}
+  .selectorM{ fill:rgb(0,0,255);}
+  .selectorP{ fill:rgb(255,0,0);}
+ </style>
+</head>
+<body>
+<h1>Choropleth map of german population</h1>
+<h1 class=sub>2nd version to test line simplification</h1>
+<div id=text>
+
+<table cellspacing="5">
+  <tr class="table">
+    <th>
+	<form>
+	    <input type="radio" name="SimplyRadioButtons" value="laender" onChange="changedRB(value)" checked> states <br>
+	    <input type="radio" name="SimplyRadioButtons" value="kreise" onChange="changedRB(value)"> counties <br>
+	    <input type="radio" name="SimplyRadioButtons" value="gemeinden" onChange="changedRB(value)"> municipalities</svg><br>
+	  </p>
+	</form>
+    	<div id="time0"></div>    
+    	<div id="time"></div>    
+    	<div id="count"></div>
+    </th>
+    <th><div id="legend"></div>
+	<div id="simplyVal"></div>
+	<div id="selector"></div>
+	<div id="simplyTime"></div>
+    </th>
+    <th><div id="hover_text"></div></th>
+  </tr>
+</table>
+</div>
+<div id=map></div>
+<div id=text>
+Data is provided by the german NMA: <a class="myLinks" href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=eng&gdz_akt_zeile=5&gdz_anz_zeile=1&gdz_unt_zeile=18&gdz_user_id=0" target="_blank"> GeoBasis-DE / BKG</a>
+<br>The colors are taken from <a class="myLinks" href="http://colorbrewer2.org/" target="_blank">Colorbrewer 2.0</a>!
+<br>Mapping framework: <a class="myLinks" href="http://leafletjs.com/" target="_blank">Leaflet</a>
+<br>Mike Bostocks scripts <a class="myLinks" href="http://d3js.org/" target="_blank">D3.js</a> and  <a class="myLinks" href="https://github.com/mbostock/topojson" target="_blank">TopoJSON</a> are used to realize the visualization!
+<br>Background tiles are provided by: 
+	<ul>
+		<li><a class="myLinks" href="http://maps.stamen.com/#toner/12/37.7706/-122.3782" target="_blank">Stamen Design</a></li>
+		<li><a class="myLinks" href="http://cloudmade.com/" target="_blank">Cloudmade</a></li>
+	</ul>
+
+<div id="version_info">
+What is missing:
+<li>the visualised percentual population has to be calculated in relation to the superior administrative unit (states-global, counties-to states, municipalities-to counties or states)</li> 
+</div>
+</div>
+<footer>
+  <aside>April 25, 2013</aside>
+  <a href="../index.html" rel="author" class="myLinks">Ralf Klammer</a>
+</footer>
+
+<script type="text/javascript">
+var start_time = Date.now();
+
+//*******************
+//Leaflet-Stuff
+var map = L.map('map').setView([51, 11], 6)
+var stamen = L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.png', {
+			attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 <a href="http://maps.stamen.com/#toner/8/51.072/14.584" rel="author" target="_blank"> Stamen</a>, Data-overlay: <a href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=eng&gdz_akt_zeile=5&gdz_anz_zeile=1&gdz_unt_zeile=18&gdz_user_id=0" rel="author" target="_blank">&copy; GeoBasis-DE / BKG 2013</a>'
+		}).addTo(map);	
+var cloudmade = L.tileLayer('http://{s}.tile.cloudmade.com/{key}/{styleId}/256/{z}/{x}/{y}.png', {
+			attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 CloudMade, Data-overlay: <a href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=eng&gdz_akt_zeile=5&gdz_anz_zeile=1&gdz_unt_zeile=18&gdz_user_id=0" rel="author" target="_blank">&copy; GeoBasis-DE / BKG 2013</a>',
+			key: 'BC9A493B41014CAABB98F0471D759707',
+			styleId: 22677
+		});
+
+http://maps.stamen.com/#toner/12/37.7519/-122.3439	
+var baseLayers = {
+				"stamen": stamen,
+				"cloudmade" : cloudmade
+			};
+	
+
+var info = L.control();
+
+info.onAdd = function (map) {
+    this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+    this.update();
+    return this._div;
+};
+
+// method that we will use to update the control based on feature properties passed
+info.update = function (d) {
+    this._div.innerHTML = '<h4>Map of german population</h4>' +  (d ?
+	'<values><b>' + d.properties.GEN + '</b><br>Population: ' + d.properties.EWZ +'</br>'+((d.properties.EWZ*100)/comp_pop).toFixed(2)+' %</values>'
+	: 'Hover over the map!');
+};
+
+info.addTo(map);
+L.control.layers(baseLayers).addTo(map);
+//*******************
+//D3-Stuff
+
+//initial definitions
+var 	mapWidth = map.getSize().x,
+	mapHeigth = map.getSize().y,
+	menuHeight = 100;
+
+var 	dataContainer = d3.select(map.getPanes().overlayPane).append("svg"),
+ 	group = dataContainer.append("g").attr("class", "leaflet-zoom-hide");
+
+
+var 	gemeinden_vals = [5000, 7500,100000,250000,500000,0],
+	kreise_vals = [100000,250000,500000,750000,1000000,0],
+	laender_vals = [2000000, 3000000,4000000,5000000,10000000,0];
+
+var 	legendContainer = d3.select("#legend").append("svg")
+		.attr("width", 300)
+		.attr("height", 125);
+
+var 	hoverContainer = d3.select("#hover_text").append("svg")
+		.attr("width", 400)
+		.attr("height", 125);
+
+var 	timeVis= d3.select("#time").append("text").attr("x",0).attr("y",0)
+			.text("calculated in: "),
+	timeVis0= d3.select("#time0").append("text").attr("x",0).attr("y",0)
+			.text("initial load took: "),
+	counterVis= d3.select("#count").append("text").attr("x",0).attr("y",0)
+			.text(""),
+	simplyTimeVis= d3.select("#simplyTime").append("text").attr("x",0).attr("y",0)
+			.text(""),
+	simplyValVis= d3.select("#simplyVal").append("text").attr("x",0).attr("y",0)
+			.text("");
+	selectorParams = [100,20,5]; //[height, width, gap]
+	simplySelector = d3.select("#selector").append("svg")
+		.attr("width", (selectorParams[0]*2)+selectorParams[2])
+		.attr("height", selectorParams[1]);
+	
+var 	geom, text_legend, text_hover, feature, topology_glob, selector,
+	valueRB = "laender",
+	hover_content = ["You hovered over: ","Exact number of population: ", "Complete population: ", "That makes (in %): "],
+	init = true,
+	path = d3.geo.path()
+		.projection(project), 
+	counter = [0,0],
+	zoomLevel = map.getZoom(),
+	ewz_cache = new Array(),
+	firstTime = true,
+	zoomed = false,
+	zoom_cache = new Array(),
+	simplify = d3.simplify()
+		.projection(geographic),
+	comp_pop = 0,
+	tester = [false, false, false],
+	translation = {"laender":"states", "kreise":"counties","gemeinden":"municipalities"},
+	simplyVal = [0.0015,0.0005, 4]; //[value, in-/decrease value, round value]
+
+//open file and work on geometries
+json = d3.json("static/vg250_gem_topo.json", function(error, topology) {
+	topology_glob = topology;
+	var bounds = d3.geo.bounds(topojson.object(topology, topology.objects.vg250_bld));
+
+	doFeatureDefinition();
+		
+      	map.on("viewreset", reset);
+	reset();
+	defineGeomCount();
+	timeVis0.text("initial load took: "+((Date.now() - start_time)/1000).toFixed(2)+"s");
+	defineTimeVis(true);
+	defineLegend();
+	function reset(){
+		if (init===false)defineTimeVis(false);
+		zoomLevel = map.getZoom()
+		//reset geometry view
+		var bottomLeft = project(bounds[0]),
+		    topRight = project(bounds[1]);
+		dataContainer 	.attr("width", topRight[0] - bottomLeft[0])
+		    		.attr("height", bottomLeft[1] - topRight[1])
+		    		.style("margin-left", bottomLeft[0] + "px")
+		    		.style("margin-top", topRight[1] + "px");
+		group   .attr("transform", "translate(" + -bottomLeft[0] + "," + -topRight[1] + ")");
+		reShow();
+		defineTimeVis(true);
+	}		
+});
+
+//FUNCTIONS
+//***********
+function getColorCodedClass(d){
+		var ewz= d.properties.EWZ;
+		ewz_cache.push(ewz);
+		var str, class_vals;
+		class_vals = testValueRB();
+		if(ewz<class_vals[0])str = "cat0"; 
+		else if (ewz>=class_vals[0] && ewz < class_vals[1]) str = "cat1"; 
+		else if (ewz>=class_vals[1] && ewz<class_vals[2]) str = "cat2"; 
+		else if (ewz>=class_vals[2] && ewz<class_vals[3]) str = "cat3";
+		else if (ewz>=class_vals[3] && ewz<class_vals[4]) str = "cat4";
+		else str = "cat5";
+
+		return str;}	
+
+function testValueRB(){
+		if (valueRB === "laender") class_vals = laender_vals;
+		else if (valueRB === "kreise") class_vals = kreise_vals;
+		else if (valueRB === "gemeinden") class_vals = gemeinden_vals;
+	return class_vals;
+}
+function defineLegend(){
+	class_vals = testValueRB();
+	//do the whole stuff only once on the initial load
+	if (init===true){
+	//set up the text of the legend
+	text_legend = legendContainer.selectAll("text")
+		.data(class_vals)
+		.enter()
+		.append("text")
+			.attr("x",100)
+			.attr("y",function(d,i){return (i*25)+15;})
+			.text(function(d){if(d!==0)return "Population < "+d; else return "Population > "})
+			.attr("font-size", "14px")
+			.attr("fill", "white");
+	//set up the rectangles of the legend
+	legendContainer.selectAll("rect")
+		.data(class_vals)
+		.enter()
+		.append("rect")
+			.attr("x",25)
+			.attr("y",function(d,i){return (i*25);})
+			.attr("height",15)
+			.attr("width",60)
+			.attr("class",function(d,i){return "cat"+i});
+	//set up the text of the simplify parameter selector
+	simplySelector.selectAll("rect")
+		.data(["P","M"])
+		.enter()
+		.append("rect").attr("y",0).attr("height",selectorParams[1]).attr("width",selectorParams[0]).attr("id","selector")
+		.attr("x",function(d,i){if (i===0)return 0; else return selectorParams[0]+5})
+		.attr("class",function(d){return "selector"+d})
+		.on("mousedown",function(d){
+			defineTimeVis(false);
+			var v = simplyVal;
+			if(d==="P")simplyVal[0]=v[0]+v[1];
+			else if(d==="M")simplyVal[0]=v[0]-v[1]; 
+			simplyValVis.text("Parameter for simplification: "+simplyVal[0].toFixed(simplyVal[2]));
+			reShow();defineTimeVis(true);defineGeomCount();});
+	//add some text, to indicate the use of the 'buttons'
+	d3.select("#selector").append("text").attr("x",0).attr("y",0)
+			.text(" + / -");
+	//set up the text that show info on the hovered object		
+	text_hover = hoverContainer.selectAll("text")
+		.data(hover_content)
+		.enter()
+		.append("text")
+			.attr("x",25)
+			.attr("y",function(d,i){return (i*25)+15;})
+			.attr("font-size", "14px")
+			.attr("fill", "white")
+			.text(function(d){return d;});
+	init = false;
+	}
+	else if (init===false){
+		text_legend.text(function(d,i){if(d!==0)return "Population < "+class_vals[i]; else return "Population > "});	
+	}
+}
+function changedRB(d){
+	defineTimeVis(false);
+	valueRB = d;
+	var nullPath = d3.geo.path();
+	feature.attr("d",nullPath);
+	testValueRB();
+	doFeatureDefinition();
+	defineLegend();
+	reShow();
+	defineGeomCount();
+	defineTimeVis(true);
+}
+function defineTimeVis(val){
+	if (val===true){
+		var final_time = ((Date.now() - start_time)/1000).toFixed(2);
+		timeVis.text("last action took: "+final_time+"s");
+	}
+	else start_time = Date.now();
+}
+function defineGeomCount(){
+	counterVis.text(counter[0]+" geometries with "+counter[1]+" points");
+}
+function doFeatureDefinition(){
+	if (valueRB === "laender") {
+		simplyVal = [0.0015, 0.0005, 4]
+		if (tester[0]===false){
+			var geometries = simplifyGeometries(valueRB);
+			laender = group.selectAll("path#bld")
+				.data(geometries)
+				.enter().append("path")
+					.attr("id",function(d){
+						//This is just a helpfull function to get the value of complete population
+						comp_pop = comp_pop + d.properties.EWZ; return "bld";})
+					.attr("class",getColorCodedClass);
+			tester[0]=true;
+			feature = laender;
+		}else feature = laender;}
+	else if (valueRB === "kreise") {
+		simplyVal = [0.000015, 0.000005, 6]
+		if (tester[1]===false){
+			var geometries = simplifyGeometries(valueRB);
+			kreise = group.selectAll("path#krs")
+				.data(geometries)
+				.enter()
+				.append("path")
+				.attr("id","krs")
+				.attr("class",getColorCodedClass);
+			tester[1]=true;
+			feature = kreise;
+		}else feature = kreise;}
+	else if (valueRB === "gemeinden") {
+		simplyVal = [0.0000015, 0.0000005, 7]
+		if (tester[2]===false){
+			var geometries = simplifyGeometries(valueRB);
+			gemeinden = group.selectAll("path#gem")
+				.data(geometries)
+				.enter()
+				.append("path")
+				.attr("id","gem")
+				.attr("class",getColorCodedClass);
+			tester[2]=true;
+			feature = gemeinden;
+		}else feature = gemeinden;
+	}
+	else console.log("Failure in FeatureSelection");
+}
+function simplifyGeometries(value){
+	//set 'topo' to the right value
+	if(value==="laender") var topo = topology_glob.objects.vg250_bld;
+	else if(value==="kreise") var topo = topology_glob.objects.vg250_krs;
+	else if(value==="gemeinden") var topo = topology_glob.objects.vg250_gem;
+	//get the geometries
+	var geometries = topojson.object(topology_glob, topo).geometries;
+	var start = Date.now();
+	//do 'd3.simplify.js' for each object of this layer
+	geometries.forEach(function(d){simplify(d)});
+	//show how long it took to simplify the geometries
+	simplyValVis.text("Parameter for simplification: "+simplyVal[0]);
+	simplyTimeVis.text("Simplification of "+translation[value]+" took: "+((Date.now() - start)/1000).toFixed(2)+" seconds");
+	//return the resulting geometries
+	return geometries;
+}
+function reShow(){
+	counter = [0,0];
+	feature.attr("d", function(d){
+			if (d.type == 'Polygon'){
+				counter[0]++;
+				var new_path = path({
+				      type: "Polygon",
+				      coordinates: d.coordinates.map(mapLineString)
+				    })				
+			}
+			else if (d.type == 'MultiPolygon'){
+				counter[0]++;
+				var new_path = path({
+				      type: "MultiPolygon",
+				      coordinates: d.coordinates.map(mapPolygon)
+				    })				
+			}
+			else if (d.type == 'MultiLineString'){
+				counter[0]++;
+				var new_path = path({
+				      type: "MultiLineString",
+				      coordinates: d.coordinates.map(mapLineString)
+				    })				
+			}
+			function mapPolygon(polygon){
+				return polygon.map(mapLineString);
+			}
+			function mapLineString(linestring){
+				return linestring.filter(filterPoints);
+			}
+			function filterPoints(point){
+				if (point[2]>simplyVal[0]){
+					counter[1]++;
+					return point;
+				}
+			}
+			return new_path;
+		});
+//	console.log(counter);
+	if (firstTime == true){	firstTime=false;}
+	feature.on("mouseover",function(d){
+		text_hover.text(function(e,i){
+			var text;
+			if (i===0)text=d.properties.GEN
+			else if (i===1)text=d.properties.EWZ
+			else if (i===2)text=comp_pop
+			else if (i===3)text=((d.properties.EWZ*100)/comp_pop).toFixed(2)
+			return hover_content[i]+text;
+		});
+		info.update(d);
+	})
+	feature.on("mouseup",function(d){
+		defineTimeVis(false);
+		var 	bounds = d3.geo.bounds(d),
+			center = new L.LatLng(bounds[0][1]+((bounds[1][1]-bounds[0][1])/2),bounds[0][0]+((bounds[1][0]-bounds[0][0])/2)),
+			southWest = new L.LatLng(bounds[0][1], bounds[0][0]),
+		    	northEast = new L.LatLng(bounds[1][1], bounds[1][0]),
+		    	bounds = new L.LatLngBounds(southWest, northEast),
+			zoom_offset  = map.getBoundsZoom( bounds)-map.getZoom();
+		if (zoomed == false){
+			zoom_cache[2] = map.getZoom();
+			map.setView( center, map.getZoom()+zoom_offset);
+			zoomed=true;
+			zoom_cache[0] = map.getCenter();
+			zoom_cache[1] = d;
+		}
+		else if (zoom_cache[1]!==d){
+			map.setView( center, map.getZoom()+zoom_offset);
+			zoom_cache[1] = d;
+		}
+		else {map.setView( zoom_cache[0], zoom_cache[2]);
+			zoomed=false;}
+			defineTimeVis(true);
+	})
+}
+
+function geographic(x) {return x;}
+
+function project(x) {
+	var point = map.latLngToLayerPoint(new L.LatLng(x[1], x[0]));
+	return [point.x, point.y];}
+
+
+</script>
+
+</body>
+</html>

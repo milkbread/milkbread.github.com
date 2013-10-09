@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+ <script src="http://d3js.org/d3.v3.min.js"></script>
+ <script src="static/leaflet.js"></script>
+ <script src="simplify_test/simplify_RK_1.0.js"></script>
+ <script src="http://d3js.org/topojson.v0.min.js"></script>
+
+ <style>
+  @import url(static/leaflet.css?0.5);
+  @import url(./static/myStyles.css);
+  #map {
+   width: 960px;
+   height: 600px;
+  }
+ rect, scrollHead{
+   fill:#aaa;
+   fill-opacity:1;
+  }
+ .info{
+   fill:#fff;
+   text-anchor:left;
+   font-family:sans-serif;
+   font-size:14px;
+  }
+  #mBar{
+   margin-bottom:0;
+  }
+  .axis path,
+  .axis line{
+   fill: none;
+   stroke: grey;
+   stroke-width:4;
+   shape-rendering: crispEdges;
+  }
+  .axis text {
+   font-family: sans-serif;
+   font-size: 11px;
+   text-anchor:left;
+  }
+  path {
+   fill: none;
+   fill-opacity: .2;
+   stroke: #000;
+   stroke-width: 1.5px;
+  }
+  .indicator{
+   fill:green;
+   fill-opacity:0.6;
+  }
+  .sub{
+   font-size: 200%;
+  }
+  
+ </style>
+</head>
+<body>
+<h1>D3 + Leaflet + Simplify + TopoJSON.mesh</h1>
+<h1 class=sub>(without topological consistency)</h1>
+<div id=text>
+<br>Demonstrates the scale dependend simplified visualisation of the german administrative boundary.
+<br>Therefore, I combined these two examples:
+	<ul>
+		<li><a href="http://bost.ocks.org/mike/leaflet/" target="_blank" class="myLinks">D3+Leaflet</a></li>
+		<li><a href="http://bost.ocks.org/mike/simplify/" target="_blank" class="myLinks">D3+Simplify.js</a></li>
+	  </ul>
+Further ressources on Simplify:
+	<ul>
+		<li><a href="http://mourner.github.com/simplify-js/" target="_blank" class="myLinks">Demonstration</a></li>
+		<li><a href="http://www.jasondavies.com/maps/simplify/" target="_blank" class="myLinks">Preserving topology</a></li>
+	</ul>
+<br>This is a variation of the the sixth stage of my implementation. 
+<br>As simplify.js was just working for <a href="http://www.geojson.org/geojson-spec.html#multipolygon" target="_blank" class="myLinks">MultiPolygons</a>...I modified it to work also for <a href="http://www.geojson.org/geojson-spec.html#multilinestring" target="_blank" class="myLinks">MultiLineStrings</a> (it is very dirty programmed!) and called this version "simplify_RK_1.0.js"
+<br>The variation of this version, lies in the use of the 'topojson.mesh' contents, instead of 'topojson.object' as in the original, sixth version!
+</div>
+
+<div id="mBar"></div>
+<div id=map></div>
+
+<footer>
+  <aside>March 18, 2013</aside>
+  <a href="../index.html" rel="author" class="myLinks">Ralf Klammer</a>
+</footer>
+
+<script type="text/javascript">
+
+	var map = L.map('map').setView([51, 0], 6)
+	var cloudmade = L.tileLayer('http://{s}.tile.cloudmade.com/{key}/{styleId}/256/{z}/{x}/{y}.png', {
+			attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 CloudMade',
+			key: 'BC9A493B41014CAABB98F0471D759707',
+			styleId: 22677
+		}).addTo(map);	
+	var baseLayers = {"base": cloudmade};	
+	L.control.layers(baseLayers).addTo(map);
+
+var mapWidth = map.getSize().x
+	mapHeigth = map.getSize().y
+	menuHeight = 100;
+
+var menuContainer = d3.select("#mBar").append("svg")
+	.attr("width", mapWidth)
+	.attr("height", menuHeight);
+//	.style("border","1px solid grey");
+
+//define all scroll bar objects and group them
+//+++++++++
+var scrollGroup = menuContainer.append("g");
+
+var 	barHeight = 20
+	barWidth = mapWidth
+	folded = false
+	offset = 17
+	foldOffset = 40
+	barPositionX = menuHeight-barHeight-offset;
+
+//define all initial values for the indicators
+var indicators, indiText;
+var indicatorGroup = menuContainer.append("g");
+var indicVals = new Array();
+
+
+
+var scrollHead = scrollGroup.append("rect")
+                         .attr("x", 0)
+                         .attr("y", barPositionX-foldOffset)
+			 .attr("rx", 20)
+                         .attr("ry", 20)
+                            .attr("width", barWidth)
+                            .attr("height", 60);
+var scrollbar = scrollGroup.append("rect")
+                            .attr("x", 0)
+                            .attr("y", barPositionX)
+                            .attr("width", barWidth)
+                            .attr("height", barHeight);
+var indicator = scrollGroup.append("rect") 
+	.attr("x",barWidth/2) 
+	.attr("y",barPositionX)
+	.attr("opacity",.2) 
+	.attr("width",10) 
+	.attr("height",barHeight)
+	.style("fill","#ff00ff");
+var text = scrollGroup.append("text")
+	.attr("x", barWidth/2)
+	.attr("y", barPositionX-25)
+	.text( "Scrollbar")
+	.attr("font-family", "sans-serif")
+	.attr("font-size", "14px")
+	.style("text-anchor","middle")				
+	.attr("fill", "white");
+
+
+
+
+//define the informational text
+var textGroup = scrollGroup.append("g");
+
+var textInterMinArea = textGroup.append("text")
+	.attr("class", "info")
+	.attr("x", 0)
+	.attr("y", barPositionX-10)
+	.text("Current Smallest Area: ");
+var textFixedMinArea = textGroup.append("text")
+	.attr("class", "info")
+	.attr("x", barWidth)
+	.attr("y", barPositionX-10)
+	.text("Fixed Smallest Area: ")
+	.attr("text-anchor","end");
+var textZoom = textGroup.append("text")
+	.attr("class", "info")
+	.attr("x", barWidth/2)
+	.attr("y", barPositionX-10)
+	.text("Zoomlevel: ")
+	.attr("text-anchor","middle");
+
+//initialize the scale for the axis of the scrollbar
+var axisScale = d3.scale.log();
+//and all other global callable varaibles
+var path, geom,
+	zoomLevel = map.getZoom(),
+	minArea = new Array(),
+	formatArea = d3.format(".2r")
+	formatPercent = d3.format(".2%"),
+	triangleCache = new Array();
+
+//define the listeners
+scrollbar.on("mousemove",reStyle);
+indicator.on("mousedown",setMinArea);
+scrollHead.on("mousedown",fold);
+text.on("mousedown",fold);
+fold();
+var firstTime = true;
+var simplify = d3.simplify()
+	.projection(geographic);
+var feature;
+
+//+++++++++
+
+//define all spatial objects
+//###############
+var 	dataContainer = d3.select(map.getPanes().overlayPane).append("svg"),
+	dataContainerGroup = dataContainer.append("g").attr("class", "leaflet-zoom-hide");
+
+json = d3.json("static/de.json", function(error, topology) {
+	path = d3.geo.path()
+		.projection(project);
+	dataContainerGroup.append("path")
+	      .datum(topojson.mesh(topology, topology.objects.subunits, function(a, b) { return a.id === b.id; }))
+	      .attr("d", path)
+	      .attr("class", "land-boundary");
+	feature = dataContainerGroup.selectAll("path");
+
+	var bounds = d3.geo.bounds(topojson.object(topology, topology.objects.subunits));
+	map.setView([bounds[0][1]+((bounds[1][1]-bounds[0][1])/2), bounds[0][0]+((bounds[1][0]-bounds[0][0])/2)],map.getZoom());
+
+	//loop features and simplify their geometries
+//	geom = simplifyFeatures(feature);
+
+	//mySquare.on("mousemove",reStyle);
+      	map.on("viewreset", reset);
+	reset();
+	
+	//define the axis of the scrollbar
+	var 	maxValue = d3.max(triangleCache),
+		minValue = d3.min(triangleCache);
+	axisScale.domain([minValue,maxValue])
+		 .range([0,barWidth]);
+	var formatNumber = d3.format(",.r"), // for formatting integers
+    		formatCurrency = function(d) { return formatNumber(d); };
+	var xAxis = d3.svg.axis()
+		.scale(axisScale)
+		.orient("bottom")
+		.ticks(10, formatCurrency);
+	var xAxisGroup = scrollGroup.append("g")
+		.attr("class", "axis")
+		.call(xAxis)
+		.attr("transform","translate(0,"+(menuHeight-offset)+")")
+		.selectAll("text").attr("text-anchor",function(i,d){
+			if(i==minValue)return "start";
+			else if (i==maxValue)return "end";
+			else return "middle";});
+
+	//included functions
+	//~~~~~~~~~~~~~~~~~~
+	function reset(){
+		zoomLevel = map.getZoom()
+		if (map.getZoom()<=6)map.setView([bounds[0][1]+((bounds[1][1]-bounds[0][1])/2), bounds[0][0]+((bounds[1][0]-bounds[0][0])/2)],map.getZoom());
+		var tester = false;
+		//check if values exist for indicators and set minAreas when exists
+		for (var i = 0;i<indicVals.length;i++){
+			if (indicVals[i].zoom==map.getZoom()){
+				minArea[zoomLevel]=indicVals[i].minArea;
+				//reset indicator when map is reseted
+				indicator.attr("x",indicVals[i].barVal-5);
+				tester = true;		
+		}}
+		//set minArea to 0 when nothing already defined
+		if (tester==false)minArea[zoomLevel]=0;
+		//reset geometry view
+		var bottomLeft = project(bounds[0]),
+		    topRight = project(bounds[1]);
+		dataContainer 	.attr("width", topRight[0] - bottomLeft[0])
+		    		.attr("height", bottomLeft[1] - topRight[1])
+		    		.style("margin-left", bottomLeft[0] + "px")
+		    		.style("margin-top", topRight[1] + "px");
+		dataContainerGroup   .attr("transform", "translate(" + -bottomLeft[0] + "," + -topRight[1] + ")");
+		reShow();
+		updateFixedText();
+		updateZoom()}		
+
+});
+
+
+
+//###############
+
+
+
+//FUNCTIONS
+//***********
+function geographic(x) {return x;}
+function setMinArea(){
+	zoomLevel = map.getZoom()
+	var value = (d3.mouse(this)[0]);
+	minArea[zoomLevel] = axisScale.invert(value);
+	updateFixedText();
+	var checker = false;
+	for (var i = 0;i<indicVals.length;i++){
+		if (indicVals[i].zoom==map.getZoom()){
+			checker=true;
+			indicVals[i].minArea=axisScale.invert(value);
+			indicVals[i].barVal=value;}}
+	if (checker==false){
+		indicVals = addToJson(indicVals,zoomLevel,axisScale.invert(value),value);}
+	if (typeof(indicators)!="undefined"){indicators.remove();indiText.remove();}
+	indicators = indicatorGroup.selectAll("rect")
+		.data(indicVals)
+		.enter()
+		.append("rect")
+		.attr("x", function (d,i) {return d.barVal-5; })
+		.attr("y", barPositionX)
+		.attr("class", "indicator")
+		.attr("width",10) 
+		.attr("height",barHeight);
+	indiText = indicatorGroup.selectAll("text")
+		.data(indicVals)
+		.enter()
+		.append("text")
+		.attr("x",function (d,i) {return d.barVal; })
+		.attr("y", barPositionX+14)
+		.text( function(d){return d.zoom;})
+		.attr("font-family", "sans-serif")
+		.attr("font-size", "14px")
+		.style("text-anchor","middle")				
+		.attr("fill", "white");
+	updateFixedText()
+	
+}
+
+function addToJson(json,zoom,area,barVal){
+	var zooms = {};
+	zooms["zoom"] = zoom;
+	zooms["minArea"] = area;
+	zooms["barVal"] = barVal;
+	json.push(zooms);
+	return json;
+}
+var shownFeats;
+function reStyle(){
+	var value = (d3.mouse(this)[0]);
+	//stores the intermediate result in a not existing zoomlevel...user has to hit the mouse to fix value
+	zoomLevel = -1;
+	minArea[zoomLevel] = axisScale.invert(value);
+	indicator.attr("x",value-5);
+	shownFeats = reShow(feature, path, geom);
+	
+}
+function updateZoom(){
+	textZoom.text(textZoom.text().split(": ")[0]+": "+map.getZoom());
+	updateFixedText();
+}
+function updateInterText(){
+	textInterMinArea.text(textInterMinArea.text().split(": ")[0]+": "+formatArea(minArea[zoomLevel])+"px² / "+formatPercent((shownFeats)/triangleCache.length));}
+function updateFixedText(){
+	for (var i = 0;i<indicVals.length;i++){
+		if (indicVals[i].zoom==map.getZoom()){
+			textFixedMinArea.text(textFixedMinArea.text().split(": ")[0]+": "+formatArea(indicVals[i].minArea)+"px²");	}}
+}
+function fold(){
+ if(folded==false){var value=barHeight+foldOffset;folded=true}
+ else {var value=0;folded=false}
+ scrollGroup.transition().attr("transform","translate(0,"+value+")").duration(1500).ease("bounce");
+ indicatorGroup.transition().attr("transform","translate(0,"+value+")").duration(1500).ease("bounce");
+}
+function project(x) {
+	var point = map.latLngToLayerPoint(new L.LatLng(x[1], x[0]));
+	return [point.x, point.y];}
+
+
+function reShow(){
+	//check if the triangles are already cached or if they have to...to get min/max values
+	if (triangleCache.length==0)var readTriangles = true;
+	else var readTriangles = false;
+
+	var counter, length;
+	feature.attr("d", function(d){
+			if (d.type == 'Polygon'){
+//				if (firstTime == true){simplify(d);}
+				var new_path = path({
+				      type: "Polygon",
+				      coordinates: d.coordinates//.map(mapLineString)
+				    })				
+			}
+			else if (d.type == 'MultiPolygon'){
+//				if (firstTime == true){simplify(d);}
+				var new_path = path({
+				      type: "MultiPolygon",
+				      coordinates: d.coordinates//.map(mapPolygon)
+				    })				
+			}
+			else if (d.type == 'MultiLineString'){
+				if (firstTime == true){simplify(d);}
+				var new_path = path({
+				      type: "MultiLineString",
+				      coordinates: d.coordinates.map(mapLineString)
+				    })				
+			}
+			function mapPolygon(polygon){
+				return polygon.map(mapLineString);
+			}
+			function mapLineString(linestring){
+				counter = 0;
+				length = linestring.length;
+				return linestring.filter(filterPoints);
+			}
+			function filterPoints(point){
+				if (readTriangles==true){
+					//console.log(formatminArea(point[2]));
+					if (point[2]>0.00000002)triangleCache.push(point[2]);
+					else triangleCache.push(0.00000002);
+				}
+				if (counter == 0 || counter == length-1){
+					counter++;
+					return point;
+				}
+				else {
+					counter++;
+					if (point[2]>minArea[zoomLevel]){return point;}
+				}
+			}
+			return new_path;
+		});
+	feature = dataContainerGroup.selectAll("path");
+	if (firstTime == true){	firstTime=false;}
+	}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<!--Sourc: http://leafletjs.com/examples/quick-start.html//-->
+<html>
+<head>
+	<link rel="stylesheet" href="static/leaflet.css" />
+	<script src="static/leaflet.js"></script>
+	<script type="text/javascript" src="static/press.json"></script>
+	<script type="text/javascript" src="static/myFunctions.js"></script>
+	<link rel="stylesheet" href="static/myStyles.css" />
+	<style>
+	#map { height: 500px; width:960px; }
+		.info {
+		    padding: 6px 8px;
+		    font: 14px/16px Arial, Helvetica, sans-serif;
+		    background: white;
+		    background: rgba(255,255,255,0.8);
+		    box-shadow: 0 0 15px rgba(0,0,0,0.7);
+		    border-radius: 10px;
+		}
+		.info h4 {
+		    margin: 0 0 5px;
+		    color: #777;
+		}
+		.legend {
+		    line-height: 18px;
+		    color: #555;
+		}
+		.legend i {
+		    width: 18px;
+		    height: 18px;
+		    float: left;
+		    margin-right: 8px;
+		    opacity: 0.7;
+		}
+		values{color:#777;}
+	</style>
+	<script>
+	var grades = [0, 21, 41, 120, 165];
+	</script>
+</head>
+<body>
+<h1>Leaflet + GeoJSON</h1>
+<div id=text>
+<br>This example demonstrates the general implementation for interactive overlays using Leaflet & GeoJSON.
+<br>In result, it is possible to:
+	<ul>
+		<li>highlight features on hovering</li>
+		<li>zoom to features on clicking</li>
+		<li>display attribute values on hovering & clicking</li>
+	</ul>
+<br>Therefore, I used this tutorial:
+	<ul>
+		<li><a class="myLinks" href="http://leafletjs.com/examples/choropleth.html" target="_blank">Leaflet + GeoJSON</a></li>
+		
+	  </ul>
+</div>
+
+
+<div id="map"></div>
+<footer>
+  <aside>January 26, 2013</aside>
+  <a class="myLinks" href="../index.html" rel="author">Ralf Klammer</a>
+</footer>
+
+<script>
+	var map = L.map('map').setView([35, 0], 2)
+
+	
+
+	var cloudmade = L.tileLayer('http://{s}.tile.cloudmade.com/{key}/{styleId}/256/{z}/{x}/{y}.png', {
+			attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 CloudMade, Data &copy; 2013 <a href="http://www.reporter-ohne-grenzen.de/ranglisten/rangliste-2013/">ROG/RSF</a>',
+			key: 'BC9A493B41014CAABB98F0471D759707',
+			styleId: 22677
+		}).addTo(map);	
+	
+	var mapbox = L.tileLayer('http://{s}.tiles.mapbox.com/v3/milkator.press_freedom/{z}/{x}/{y}.png', {attribution: 'Map data &copy; 2013 Natural Earth, Data &copy; 2013 <a href="http://www.reporter-ohne-grenzen.de/ranglisten/rangliste-2013/">ROG/RSF</a>'});	
+
+	function style(feature) {
+	    return {
+		fillColor: getColor(feature.properties.rank),
+		weight: 1,
+		opacity: 1,
+		color: 'white',
+		dashArray: '3',
+		fillOpacity: 0.7
+	    };
+	}
+	function getColor(d) {
+	    return d > grades[4]  ? ' #410404' :
+		   d > grades[3]  ? '#ff0000' :
+		   d > grades[2]   ? '#f0681a' :
+		   d > grades[1]   ? '#ffcc00' :
+		              '#4bcf15';
+	}
+	
+	
+	var geojson = L.geoJson(statesData, {
+	    style: style,
+	    onEachFeature: onEachFeature
+	}).addTo(map)
+
+
+	var baseLayers = {
+				"base": cloudmade,
+				"press freedom" : mapbox
+			};
+	var overlays = {
+				"geoJson": geojson
+			};
+	L.control.layers(baseLayers, overlays).addTo(map);
+
+	var info = L.control();
+
+	info.onAdd = function (map) {
+	    this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+	    this.update();
+	    return this._div;
+	};
+
+	// method that we will use to update the control based on feature properties passed
+	info.update = function (props) {
+	    this._div.innerHTML = '<h4>World wide press freedom</h4>' +  (props ?
+		'<values><b>' + props.name + '</b><br />Ranking position: ' + props.rank +'</values>'
+		: 'Hover over a state');
+	};
+
+	info.addTo(map);
+	//document.write("hallo");
+
+	var legend = L.control({position: 'bottomright'});
+
+	legend.onAdd = function (map) {
+
+	    var div = L.DomUtil.create('div', 'info legend'),
+		//grades = [0, 22, 42, 121, 166],
+		labels = [];
+
+	    // loop through our density intervals and generate a label with a colored square for each interval
+	    div.innerHTML = 'Ranking position<br>'
+	    for (var i = 0; i < grades.length; i++) {
+		div.innerHTML +=
+		    '<i style="background:' + getColor(grades[i]+1) + '"></i> ' +
+		    grades[i] + (grades[i + 1] ? ' &ndash; ' + (grades[i + 1]-1) + '<br>' : ' +');
+	    }
+
+	    return div;
+	};
+
+	legend.addTo(map);
+
+	
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <script src="http://d3js.org/d3.v3.min.js"></script> 
+ <script src="../static/topojson_v1.js"></script>
+ <script src="../static/RKMapping_0.4.js"></script>
+ <script src="../static/leaflet.js"></script>
+
+<style>
+  @import url(../static/myStyles.css);
+  @import url(../static/leaflet.css?0.5);
+
+#map {
+  width: 960px;
+  height: 600px;
+}
+#info {
+  width: 960px;
+  height: 100px;
+  background-color:rgba(255,0,0,0.2);
+  border-radius: 15px;
+}
+#overlay{
+ fill:rgba(200,200,200,1);
+ stroke:rgba(0,0,0,1);
+ opacity:0.3;
+ stroke-width:0.5px;
+}
+#overlay:hover{
+ opacity:0.8;
+}
+h_own{
+ font-weight:bold;
+ text-decoration:underline;
+}
+</style>
+</head>
+<body>
+<h1>Testing the automatic dection of adjoining features</h1>
+<h1 class=sub>The tested function ('getArcsOfNeighbores(features, arcCollection)') is part of 'RKMapping_0.4.js'.<br>This is a comparison with the function ('topojson.neighbors(objects)') which is part of 'topojson_v1.js'</h1>
+
+<div id=Selection></div>
+<div id=info></div>
+<div id=map></div>
+
+<script>
+var start_time0 = Date.now();
+var map = L.map('map').setView([51.25, 11], 6);
+
+	
+var stamen = L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.png', {attribution: 'Add some attributes here!'}).addTo(map);	
+var baseLayers = {"stamen": stamen};
+L.control.layers(baseLayers).addTo(map);
+
+var overLayer = new mapOverlay(map);
+var infoContainer = d3.select("body").append("info").text("This will show you some information!")
+
+var info = d3.select("#info");
+var file_info = info.append("h_own");
+info.append("br");
+info.append("text").text("How long does it take to detect the neighbors of each feature?")
+info.append("br");
+var infoTable = info.append("table").attr("border",1);
+var infoTableRowI = infoTable.append("tr")
+infoTableRowI.append("td").text("Function:")
+infoTableRowI.append("td").text("topojson.neighbors()")
+infoTableRowI.append("td").text("getArcs()")
+infoTableRowI.append("td").text("getArcsOfNeighbores()")
+infoTableRowI.append("td").text("complete Processing")
+var infoTableRowII = infoTable.append("tr")
+infoTableRowII.append("td").text("Time:")
+
+//add content to the selection
+var sel = d3.select("#Selection").append("table").append("tr")
+var selector = sel.append("td").append("form").attr("name","depthForm").append("select").attr("name","depthSel").attr("onChange","changedVersion(value)").attr("size","3");
+selector.selectAll("option").data(["clipped_version:municipalities","full_version:states", "full_version:counties", "full_version:municipalities"]).enter().append("option").attr("value",function(d){return d;}).text(function(d){return d}).attr("name",function(d){return d})
+function changedVersion(value){ window.location.search=value }
+
+//get the initial value and split it
+var initVal = window.location.search.replace("?","").split(":")
+//define the file that will be used for the visualisation
+if(initVal.length==1)initVal=["clipped_version","municipalities"]
+if (initVal[0]=="clipped_version")var file="static/vg250_clipped2_topo.json";
+else var file="static/vg250_gem_topo.json";
+
+file_info.text("Using the '"+initVal[0]+"' to visualise: "+initVal[1]);
+	
+
+d3.json(file, function(error, topology) {
+	//get the right features
+	if (initVal[0]==undefined || initVal[0]=="clipped_version"){
+		var pure = topology.objects.vg250_gem_clipped2;
+	}else { 
+		if( initVal[1]=="states")var pure = topology.objects.vg250_bld;
+		else if( initVal[1]=="counties")var pure = topology.objects.vg250_krs;
+		else if( initVal[1]=="municipalities")var pure = topology.objects.vg250_gem;
+	}
+	file_info.append("text").text(" ... number of features: "+pure.geometries.length);
+	var features = pure.geometries;
+	var start_time = Date.now();
+	var mikes_neighbors = topojson.neighbors(features);
+	infoTableRowII.append("td").text(((Date.now() - start_time)/1000).toFixed(3)+"s")
+	console.log(mikes_neighbors)
+
+	var start_time2 = Date.now();
+	var whole_start = Date.now();
+	var arcCollection = getArcs(topology, features);
+	infoTableRowII.append("td").text(((Date.now() - start_time2)/1000).toFixed(3)+"s")
+	
+	var start_time3 = Date.now();
+	var ralfs_neighbors = getArcsOfNeighbores(features, arcCollection)	
+	infoTableRowII.append("td").text(((Date.now() - start_time3)/1000).toFixed(3)+"s (inkl. getArcs(): "+((Date.now() - whole_start)/1000).toFixed(3)+"s)")
+	console.log(ralfs_neighbors)
+	
+
+	//read and store all objects of the TopoJSON-file
+	var states = topojson.feature(topology, pure);
+	overLayer.addGeometries(states.features,"path");
+	reset();
+	map.on("viewreset", reset);
+	overLayer.features.attr("id","overlay")
+			.on("mouseover",showInfo)
+			.on("mousedown",zoomToObject);
+
+	function reset(){
+		overLayer.resetView(d3.geo.bounds(states));
+		overLayer.showAll();
+	}
+	function showInfo(value){
+		infoContainer.text("You hovered over: "+value.properties.GEN +' click it and see what happens!')
+	}
+     	function zoomToObject(d){
+		var local_bounds = d3.geo.bounds(d),
+		center = new L.LatLng(local_bounds[0][1]+((local_bounds[1][1]-local_bounds[0][1])/2),local_bounds[0][0]+((local_bounds[1][0]-local_bounds[0][0])/2)),
+		southWest = new L.LatLng(local_bounds[0][1], local_bounds[0][0]),
+		northEast = new L.LatLng(local_bounds[1][1], local_bounds[1][0]);
+		var local_bounds = new L.LatLngBounds(southWest, northEast);
+		map.setView( center, map.getBoundsZoom( local_bounds));
+	}
+	
+	infoTableRowII.append("td").text(((Date.now() - start_time0)/1000).toFixed(3)+"s")
+
+})
+</script>
+<footer>
+  <aside>May 31, 2013</aside>
+  <a href="../index.html" rel="author" class="myLinks">Ralf Klammer</a>
+</footer>
+</body>
+</html>

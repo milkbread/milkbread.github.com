@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<!--	http://bost.ocks.org/mike/map/
+-->
+<meta charset="utf-8">
+<link rel="stylesheet" href="../static/myStyles.css" />
+<link rel="stylesheet" href="static/myStyles.css" />
+	
+<style>
+.subunit{fill:#fff;}
+.subunit.Nordrhein-Westfalen{ fill: #aba; }
+.subunit.Baden-Württemberg{ fill: #bab; }
+.subunit.Hessen{ fill: #bcb; }
+.subunit.Niedersachsen{ fill: #cbc; }
+.subunit.Thüringen{ fill: #cdc; }
+.subunit.Hamburg{ fill: #dcd; }
+.subunit.Schleswig-Holstein{ fill: #ded; }
+.subunit.Rheinland-Pfalz{ fill: #ede; }
+.subunit.Saarland{ fill: #efe; }
+.subunit.Sachsen-Anhalt{ fill: #fef; }
+.subunit.Brandenburg{ fill: #aaa; }
+.subunit.Mecklenburg-Vorpommern{ fill: #bbb; }
+.subunit.Bayern { fill: #ccc; }
+.subunit.Sachsen { fill: #ddd; }
+.subunit.Bremen { fill: #eee; }
+.subunit.Berlin { fill: #fff; }
+
+.subunit-boundary {
+  fill: none;
+  stroke-width:1px;
+  stroke: #777;
+  stroke-dasharray: 2,2;
+  stroke-linejoin: round;
+}
+
+.place,
+.place-label {
+  fill: #444;
+  font-size:14px;
+}
+
+text {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 20px;
+  pointer-events: none;
+}
+.subunit-label {
+  fill: #777;
+  fill-opacity: .5;
+  font-size: 30px;
+  font-weight: 200;
+  text-anchor: middle;
+}
+.graticule {
+  fill: none;
+  stroke: #777;
+}
+
+.boundary {
+  fill: #ccc;
+  fill-opacity: .8;
+  stroke: #000;
+}
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/topojson.v0.min.js"></script>
+<script src="http://d3js.org/d3.geo.projection.v0.min.js"></script>
+<h1>D3's projections</h1>
+<div id=text>
+<br>This is a simple example to test and visualise the different possible projections of D3.
+
+<br><br>Descriptions on the projections can be found here:
+	<ul>
+		<li><a class="myLinks" href="https://github.com/mbostock/d3/wiki/Geo-Projections" target="_blank">Geo Projections</a></li>
+		
+	  </ul>
+See also:
+	<ul>
+		<li><a class="myLinks" href="http://www.jasondavies.com/maps/" target="_blank">Maps by Jason Davies</a></li>
+		<li><a class="myLinks" href="http://mbostock.github.io/d3/tutorial/bar-2.html" target="_blank">Shows how to implement transitions with changing data</a> I have not solved this so far!!!</li>
+
+
+	</ul>
+</div>
+<br>Select a projection
+<div id=tester></div>
+
+<script>
+var menu = d3.select("#tester").append("form").attr("name","projForm");
+var select = menu.append("select").attr("name","myProjDropDown").attr("onChange","show(value)");
+var content = ["conicEquidistant","equirectangular","mercator","albersUsa","azimuthalEqualArea","conicConformal","orthographic","azimuthalEquidistant","conicEqualArea","gnomonic","stereographic","transverseMercator","albers"];
+select.selectAll("option").data(content).enter()
+					.append("option").attr("value",function(d){return d;}).text(function(d){return d;});
+
+
+var width = 1200,
+    height = 960;
+
+var graticule = d3.geo.graticule()
+    .extent([[-180, -90], [180, 90]])
+    .step([5, 10]);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+var global_topo, geoms, gratis, init = true;
+
+d3.json("static/ne_50m_admin0_topo.json", function(error, topo) {
+	global_topo = topo;
+  	show("conicEquidistant");
+});
+
+d3.select(self.frameElement).style("height", height + "px");
+
+function show(proj){
+ var projection;
+ switch (proj) {
+  case "conicEquidistant": {projection = d3.geo.conicEquidistant();break;}
+  case "equirectangular":  {projection = d3.geo.equirectangular();break;}
+  case "mercator":  {projection = d3.geo.mercator();break;}
+  case "albersUsa":  {projection = d3.geo.albersUsa();break;}
+  case "azimuthalEqualArea":  {projection = d3.geo.azimuthalEqualArea();break;}
+  case "conicConformal":  {projection = d3.geo.conicConformal();break;}
+  case "orthographic":  {projection = d3.geo.orthographic();break;}
+  case "azimuthalEquidistant":  {projection = d3.geo.azimuthalEquidistant();break;}
+  case "conicEqualArea":  {projection = d3.geo.conicEqualArea();break;}
+  case "gnomonic":  {projection = d3.geo.gnomonic();break;}
+  case "stereographic":  {projection = d3.geo.stereographic();break;}
+  case "transverseMercator":  {projection = d3.geo.transverseMercator();break;}
+  case "albers":  {projection = d3.geo.albers();break;}
+ }
+ console.log(projection);
+ var path = d3.geo.path()
+    .projection(projection);
+ if (init===false) {gratis.remove();geoms.remove();}
+ geoms = svg.append("path")
+    .datum(graticule)
+    .attr("class", "graticule")
+    .attr("d", path);
+ gratis = svg.selectAll("path")
+      .data(topojson.object(global_topo, global_topo.objects.ne_50m_admin0).geometries)
+      .enter()
+	.append("path")
+	.attr("class", "boundary")
+	.attr("d", path)
+	.on("mousedown",function(){console.log(show())});
+ init = false;
+
+}
+function test(d){console.log("this is a test"+d);}
+</script>
+
+<footer>
+  <aside>April 26, 2013</aside>
+  <a class="myLinks" href="../index.html" rel="author">Ralf Klammer</a>
+</footer>
+</body>

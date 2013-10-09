@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+ <script src="http://d3js.org/d3.v3.min.js"></script>
+ <script src="static/leaflet.js"></script>
+ <script src="simplify_test/simplify_RK_1.0.js"></script>
+ <script src="simplify_test/topojson.v0_RK_1.0.js"></script>
+
+ <style>
+  @import url(static/leaflet.css?0.5);
+  @import url(./static/myStyles.css);
+  #map {
+   width: 960px;
+   height: 600px;
+  }
+ .info{
+   fill:#fff;
+   text-anchor:left;
+   font-family:sans-serif;
+   font-size:14px;
+  }
+  path {
+   stroke:#000;
+   stroke-width: 1px;
+  }
+  path:hover {
+   fill: rgba(0%,0%,0%,.1);
+  }
+  #bld{
+   stroke:rgba(0,0,0,0.5);
+   stroke-width:1;
+  }
+  .laender{ fill:rgb(255,255,178);}
+  .merged_states{ fill:rgb(0,255,178);stroke:none;}
+  .merged_states_outline{ fill:none;stroke:#fff;stroke-width:5px;}
+  tr {
+    text-align:left;
+    vertical-align:top;
+  }
+ </style>
+</head>
+<body>
+<h1>Apparent merge by TopoJSON.mesh</h1>
+<div id=text>
+<br>Demonstrates the merging of apparent polygonal geometries based on the mesh of the TopoJSON file format.
+<br>This is a modified version of the <a class="myLinks" href="d3-merging_states2.html" target="_blank" class="myLinks">merge of polygons</a>. 
+<br>This is an apparent geometry merge as the geometries are just classified to one class, instead of really merging geometries by creating a new geometry. This is exactly the same implementation as I was not able to call the object: topojson.features(...)...that is why I searched&found another way to implement this.
+<br>Mike Bostock proposed this version as, he wanted to prevent the creation of a new geometry.
+<br>Have a look at these links:<ul>
+		<li><a class="myLinks" href="http://bl.ocks.org/mbostock/5416405" target="_blank" class="myLinks">Mike Bostocks 1st version</a></li>		
+		<li><a class="myLinks" href="http://bl.ocks.org/mbostock/5416405" target="_blank" class="myLinks">Mike Bostocks 2nd version</a></li>		
+	</ul>
+<br>In this version...you are able to click on a state to add it to the merged states!
+<br>You can see...each part of the 'merged' geometry is still singular selectable when hovering it. It is obvious...but removing a state should be way more easy implementable than in the first version...but is not currently ;-)
+</div>
+<div id=map></div>
+<div id=text>
+Data is provided by the german NMA: <a class="myLinks" href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=eng&gdz_akt_zeile=5&gdz_anz_zeile=1&gdz_unt_zeile=18&gdz_user_id=0" target="_blank"> GeoBasis-DE / BKG</a>
+<br>Mapping framework: <a class="myLinks" href="http://leafletjs.com/" target="_blank">Leaflet</a>
+<br>Mike Bostocks scripts <a class="myLinks" href="http://d3js.org/" target="_blank">D3.js</a> and  <a class="myLinks" href="https://github.com/mbostock/topojson" target="_blank">TopoJSON</a> are used to realize the visualization!
+<br>Background tiles are provided by: 
+	<ul>
+		<li><a class="myLinks" href="http://maps.stamen.com/#toner/12/37.7706/-122.3782" target="_blank">Stamen Design</a></li>
+		<li><a class="myLinks" href="http://cloudmade.com/" target="_blank">Cloudmade</a></li>
+	</ul>
+</div>
+<footer>
+  <aside>April 24, 2013</aside>
+  <a href="../index.html" rel="author" class="myLinks">Ralf Klammer</a>
+</footer>
+
+<script type="text/javascript">
+var start_time = Date.now();
+
+//*******************
+//Leaflet-Stuff
+var map = L.map('map').setView([51, 11], 6)
+var stamen = L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.png', {
+			attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 <a href="http://maps.stamen.com/#toner/8/51.072/14.584" rel="author" target="_blank"> Stamen</a>, Data-overlay: <a href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=eng&gdz_akt_zeile=5&gdz_anz_zeile=1&gdz_unt_zeile=18&gdz_user_id=0" rel="author" target="_blank">&copy; GeoBasis-DE / BKG 2013</a>'
+		}).addTo(map);	
+var cloudmade = L.tileLayer('http://{s}.tile.cloudmade.com/{key}/{styleId}/256/{z}/{x}/{y}.png', {
+			attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 CloudMade, Data-overlay: <a href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=eng&gdz_akt_zeile=5&gdz_anz_zeile=1&gdz_unt_zeile=18&gdz_user_id=0" rel="author" target="_blank">&copy; GeoBasis-DE / BKG 2013</a>',
+			key: 'BC9A493B41014CAABB98F0471D759707',
+			styleId: 22677
+		});
+
+http://maps.stamen.com/#toner/12/37.7519/-122.3439	
+var baseLayers = {
+				"stamen": stamen,
+				"cloudmade" : cloudmade
+			};
+L.control.layers(baseLayers).addTo(map);
+//*******************
+//D3-Stuff
+
+//initial definitions
+var 	mapWidth = map.getSize().x,
+	mapHeigth = map.getSize().y,
+	menuHeight = 100;
+
+var 	dataContainer = d3.select(map.getPanes().overlayPane).append("svg"),
+ 	data_group = dataContainer.append("g").attr("class", "leaflet-zoom-hide");
+	
+var 	geom, text_legend, text_hover, valueRB,
+	path = d3.geo.path()
+		.projection(project), 
+	zoomLevel = map.getZoom(),
+	firstTime = true,
+	feature,
+	simplify = d3.simplify()
+		.projection(geographic),
+	selected = ["Sachsen", "Bayern", "Sachsen-Anhalt", "Baden-Württemberg"];
+
+var topology_global, feature2, init = true;
+//open file and set geometries
+json = d3.json("static/vg250_gem_topo.json", function(error, topology) {
+	topology_global = topology;
+	var bounds = d3.geo.bounds(topojson.object(topology, topology.objects.vg250_bld));
+	console.log(topojson.object(topology, topology.objects.vg250_bld).geometries);
+	laender = data_group.selectAll("path")
+		.data(topojson.object(topology, topology.objects.vg250_bld).geometries)
+		.enter()
+		.append("path")
+		.attr("class","laender");
+	feature = data_group.selectAll('path.laender');
+
+	doMerge();
+	init = false;
+      	map.on("viewreset", reset);
+	reset();
+	function reset(){
+		zoomLevel = map.getZoom()
+		//reset geometry view
+		var bottomLeft = project(bounds[0]),
+		    topRight = project(bounds[1]);
+		dataContainer 	.attr("width", topRight[0] - bottomLeft[0])
+		    		.attr("height", bottomLeft[1] - topRight[1])
+		    		.style("margin-left", bottomLeft[0] + "px")
+		    		.style("margin-top", topRight[1] + "px");
+		data_group   .attr("transform", "translate(" + -bottomLeft[0] + "," + -topRight[1] + ")");
+		reShow();
+	}		
+});
+
+//FUNCTIONS
+//***********
+function doMerge(){
+	//get all geometries
+	var states = topojson.object(topology_global, topology_global.objects.vg250_bld).geometries,
+		//set a new array for the filtered features to come
+		filtered = new Array()
+		//filter features and store them in an array
+		states.map(function(d) {if(checkIntegrity(d.properties.GEN)===true)filtered.push(d);}),
+		//set a new array for the new paths to come
+		new_path = new Array();
+	//loop through filtered features, make paths and push them to the array
+	filtered.map(function(d){		
+		if (d.type==="Polygon"){
+			new_path.push(path({
+				type: d.type,
+				coordinates: d.coordinates.map(mapLineString)
+			}))
+		}
+		else if (d.type == 'MultiPolygon'){
+			new_path.push(path({
+				type: d.type,
+				coordinates: d.coordinates.map(mapPolygon)
+			}))
+		}
+	});
+	//remove all existing paths...necessary for reload after adding states
+	data_group.selectAll('path.merged_states').remove();
+	//make the areas
+	data_group.selectAll("path.merged_states")
+		.data(new_path)
+		.enter()
+		.append("path")
+		.attr("class","merged_states")
+		.attr("d", function(d,i){return new_path[i]});
+
+	feature2 = data_group.selectAll('path.merged_states');
+      	feature2.on("mousedown",function(d){console.log(d);
+	})
+	
+}
+function checkIntegrity(data){
+	var test = false; 
+	
+	selected.map(
+		function(e){if (data===e)test=true;});
+	return test
+}
+function reShow(){
+	feature.attr("d", function(d){
+			if (d.type == 'Polygon'){
+//				if (firstTime == true){simplify(d);}
+				var new_path = path({
+				      type: "Polygon",
+				      coordinates: d.coordinates.map(mapLineString)
+				    })				
+			}
+			else if (d.type == 'MultiPolygon'){
+//				if (firstTime == true){simplify(d);}
+				var new_path = path({
+				      type: "MultiPolygon",
+				      coordinates: d.coordinates.map(mapPolygon)
+				    })				
+			}
+			else if (d.type == 'MultiLineString'){
+//				if (firstTime == true){simplify(d);}
+				var new_path = path({
+				      type: "MultiLineString",
+				      coordinates: d.coordinates.map(mapLineString)
+				    })				
+			}
+			
+			
+			
+			return new_path;
+		});
+	if (firstTime == true){	firstTime=false;}
+	feature.on("mouseover",function(d){console.log("Huhuuuu");
+	})
+	feature.on("mousedown",function(d){
+		console.log(d.properties);
+		if(checkIntegrity(d.properties.GEN)===false){
+			selected.push(d.properties.GEN);
+			doMerge();	
+		}		
+	})
+}
+function mapPolygon(polygon){
+				return polygon.map(mapLineString);
+			}
+function mapLineString(linestring){
+				return linestring.filter(filterPoints);
+			}
+function filterPoints(point){
+				return point;//point[2]>0.0062;
+			}
+function geographic(x) {return x;}
+
+function project(x) {
+	var point = map.latLngToLayerPoint(new L.LatLng(x[1], x[0]));
+	return [point.x, point.y];}
+
+
+</script>
+
+</body>
+</html>

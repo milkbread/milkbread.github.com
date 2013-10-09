@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <script src="http://d3js.org/d3.v3.min.js"></script> 
+ <script src="../static/topojson_v1.js"></script>
+ <script src="../static/RKMapping_0.3.js"></script>
+ <script src="../static/leaflet.js"></script>
+ <script src="../simplify_test/simplify_RK_1.0.js"></script>
+ <script src="../static/RKTools_0.1.js"></script>
+
+<style>
+ @import url(../static/myStyles.css);
+ @import url(../static/leaflet.css?0.5);
+ @import url(../static/RKTools.css);
+
+#map {
+ width: 960px;
+ height: 600px;
+}
+#overlay_poly{
+ fill:rgba(200,200,200,1);
+ stroke:rgba(200,0,0,1);
+ opacity:0.8;
+ stroke-width:1.5px;
+}
+#overlay_poly:hover{
+ opacity:0.3;
+}
+#overlay_line{
+ fill:none;
+ stroke:rgba(0,0,255,1);
+ opacity:0.8;
+ stroke-width:1.0px;
+}
+</style>
+</head>
+<body>
+<h1>Demonstration on TopoJSON's <br> influence on generalization</h1>
+<h1 class=sub>using D3, TopoJSON, Simplify.js and ArcGeometries</h1>
+
+<div id="Selection"></div>
+
+<div id=bar></div>
+
+<div id=map></div>
+
+<div id=version_info>
+This is a second demonstration on data driven linear simplification of polygonal geometries. (<a class="myLinks" href="RKMapping_simplify_1.1.html">see 1st version</a>)
+<br>--> you can show the inner boundaries of the counties or municipalities in the higher resoluted layers.
+</div>
+<script>
+
+var initVal = window.location.search.replace("?","")
+if (initVal==="states" || initVal === ""){initVal = "states";var file="static/vg1000_topo_pure.json"}
+else if (initVal==="counties")var file="static/vg1000_topo.json"
+else if (initVal==="municipalities")var file="static/vg250_gem_topo.json"
+
+
+var map = L.map('map').setView([51.25, 11], 6);
+	
+var stamen = L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.png', {attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 CloudMade, Data-overlay: <a href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=eng&gdz_akt_zeile=5&gdz_anz_zeile=1&gdz_unt_zeile=18&gdz_user_id=0" rel="author" target="_blank">&copy; GeoBasis-DE / BKG 2013</a>'}).addTo(map);	
+var baseLayers = {"stamen": stamen};
+L.control.layers(baseLayers).addTo(map);
+
+var overLayer2 = new mapOverlay(map);
+var overLayer = new mapOverlay(map);
+var infoContainer = d3.select("body").append("info").text("This will show you some information!")
+
+var simplify = d3.simplify()
+	.projection(function (x) {return x;});
+
+var zoomLevel, showInnerBounds = false;
+
+var mapWidth = map.getSize().x
+	mapHeight = map.getSize().y
+	menuHeight = 100
+	mapParams = [mapWidth, mapHeight, menuHeight];
+
+var menuContainer = d3.select("#bar").append("svg")
+	.attr("width", mapWidth)
+	.attr("height", menuHeight);
+
+var scrollBar = new scrollBar(menuContainer, mapParams);
+scrollBar.addVariableText();
+scrollBar.updateInterText(0);
+scrollBar.addFixedText();
+scrollBar.addZoomText();
+var scroll = scrollBar.getScrollbar(),
+	indic = scrollBar.getIndicator();
+var axisScale, maximum = 0, topo_global;
+	
+	
+d3.json(file, function(error, topology) {
+	topo_global = topology;
+	if (initVal==="states" || initVal==="counties")	{
+		var pure_states = topology.objects.vg1000_bld;
+	}
+	else if (initVal==="municipalities")	var pure_states = topology.objects.vg250_bld;
+	
+	//get all arc-geometries of the selected objects 'pure_states'...can be simplified directly
+	var arcCollection = getArcs(topology, pure_states.geometries, [simplify, 0]);
+	var minMax = getTriangleSizes(arcCollection)
+	minMax[1] = 0.01;
+	axisScale = scrollBar.defineAxis(minMax);
+	scroll.on("mousemove",reStyle);
+	indic.on("mousedown",fixValue);
+
+	var element_count = 0;
+	for (e in arcCollection) { element_count++; }
+	var polygons = getGeometries(pure_states.geometries, arcCollection)
+	var polyCollection = {type: 'GeometryCollection', geometries:polygons}
+
+	overLayer.addGeometries(polygons,"path");
+	reset();
+	map.on("viewreset", reset);
+	overLayer.features.attr("id","overlay_poly")
+			.on("mouseover",showInfo)
+			.on("mousedown",zoomToObject);
+	
+	function reset(){
+		zoomLevel = scrollBar.updateZoom(map);
+		overLayer.resetView(d3.geo.bounds(polyCollection));
+		if(initVal==="counties" || initVal==="municipalities")overLayer2.resetView(d3.geo.bounds(polyCollection));
+		if(scrollBar.indicatorCache[zoomLevel]===undefined)maximum=0;else maximum=scrollBar.indicatorCache[zoomLevel][2];
+		reShow(maximum);
+	}
+	function showInfo(value){
+		infoContainer.text("You hovered over: "+value.properties.GEN +' click it and see what happens!')
+	}
+     	function zoomToObject(d){
+		var local_bounds = d3.geo.bounds(d),
+		center = new L.LatLng(local_bounds[0][1]+((local_bounds[1][1]-local_bounds[0][1])/2),local_bounds[0][0]+((local_bounds[1][0]-local_bounds[0][0])/2)),
+		southWest = new L.LatLng(local_bounds[0][1], local_bounds[0][0]),
+		northEast = new L.LatLng(local_bounds[1][1], local_bounds[1][0]);
+		var local_bounds = new L.LatLngBounds(southWest, northEast);
+		map.setView( center, map.getBoundsZoom( local_bounds));
+	}
+
+})
+//add the selection to the correpsonding div
+var table = d3.select("#Selection").append("table").append("tr")
+var selector = table.append("td").append("form").attr("name","depthForm").append("select").attr("name","depthSel").attr("onChange","changedDep(value)").attr("size","3");
+selector.selectAll("option").data(["states", "counties", "municipalities"]).enter().append("option").attr("value",function(d){return d;}).text(function(d){return d}).attr("name",function(d){return d})
+var infoText = table.append("td").append("text").text("Calculating...")
+
+if (initVal==="counties" || initVal==="municipalities"){
+	var checkbox = d3.select("#Selection").append("table").append("form")
+	checkbox.append("input").attr("type","checkbox").attr("name","showInnerBoundaries").attr("onChange","showInner()");
+	checkbox.append("text").text("Show the inner boundaries")
+}
+
+function showInner(){
+	if(initVal==="counties" || initVal==="municipalities"){
+		if (initVal==="counties")var geometries2 = topo_global.objects.vg1000_krs.geometries;
+		else if (initVal==="municipalities")var geometries2 = topo_global.objects.vg250_gem.geometries;
+		var addArcCollection = getArcs(topo_global, geometries2, [simplify, 1]);
+		var polygons2 = getGeometries(geometries2, addArcCollection)
+		overLayer2.addGeometries(polygons2)
+		overLayer2.features.attr("id","overlay_line");
+	}	
+	showInnerBounds=true;
+	reShow(maximum);
+	checkbox.selectAll("input").remove();
+	checkbox.text("Now you see the boundaries of the '"+ initVal +"' - check out their influence!")
+}
+
+function changedDep(value){ window.location.search=value }
+function fixValue(){
+	var value = (d3.mouse(this)[0]), minVal = axisScale.invert(value);
+	if (zoomLevel in scrollBar.indicatorCache) scrollBar.updateFixedIndicator(value, zoomLevel, minVal);
+	else scrollBar.addFixedIndicator(value, zoomLevel, minVal);
+	scrollBar.updateFixedText(minVal);
+	maximum = -1;	
+}
+
+function reStyle(){
+	var value = (d3.mouse(this)[0]);
+	var minArea = axisScale.invert(value);
+	scrollBar.getIndicator().attr("x",value-5);
+	reShow(minArea);
+}
+
+function reShow(maxVal){
+	var counter = overLayer.showAllFiltered(maxVal);
+	if(showInnerBounds===true && (initVal==="counties" || initVal==="municipalities"))overLayer2.showAll();
+	infoText.text("Chosen: "+initVal+" Using: '"+file+"'...showing "+counter[0]+ " features, visualised by " +counter[2]+" points (of "+counter[1]+")")
+//	console.log(counter)
+	scrollBar.updateInterText(maxVal);		
+}
+
+</script>
+<footer>
+  <aside>May 16, 2013</aside>
+  <a href="../index.html" rel="author" class="myLinks">Ralf Klammer</a>
+</footer>
+</body>
+</html>

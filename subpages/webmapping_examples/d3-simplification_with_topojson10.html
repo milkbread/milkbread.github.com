@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+ <script src="http://d3js.org/d3.v3.min.js"></script>
+ <script src="static/leaflet.js"></script>
+ <script src="simplify_test/simplify_RK_1.0.js"></script>
+ <script src="simplify_test/topojson.v0_RK_1.0.js"></script>
+
+ <style>
+  @import url(static/leaflet.css?0.5);
+  @import url(./static/myStyles.css);
+  #map {
+   width: 960px;
+   height: 600px;
+  }
+ rect, scrollHead{
+   fill:#aaa;
+   fill-opacity:1;
+  }
+ .info{
+   fill:#fff;
+   text-anchor:left;
+   font-family:sans-serif;
+   font-size:14px;
+  }
+  #mBar{
+   margin-bottom:0;
+  }
+  .axis path,
+  .axis line{
+   fill: none;
+   stroke: grey;
+   stroke-width:4;
+   shape-rendering: crispEdges;
+  }
+  .axis text {
+   font-family: sans-serif;
+   font-size: 11px;
+   text-anchor:left;
+  }
+  path {
+   fill: none;
+   fill-opacity: .2;
+   stroke: #000;
+   stroke-width: 1.5px;
+  }
+  .boundary{
+   stroke-width: 1px;
+  }
+  .river{
+   stroke-width: 5px;
+   stroke: rgba(100%,0%,0%,0.4);
+  }
+  .indicator{
+   fill:green;
+   fill-opacity:0.6;
+  }
+  .sub{
+   font-size: 200%;
+  }
+  .overlay{
+    fill:rgba(100,100,100,0.4);
+  }
+  .overlay:hover{
+    fill:rgba(100,100,100,0.05);   
+  }
+  
+ </style>
+</head>
+<body>
+<h1>D3 + Leaflet + Simplify + TopoJSON.mesh + Rivertopology</h1>
+<h1 class=sub>with slight preservation of topological consistency and indipendent simplification for different geometries and topologic consistency at 'river-border'</h1>
+<div id=text>
+<br>Demonstrates the scale dependend simplified visualisation of the german administrative boundary.
+
+<br>This is a ninth variation of the the sixth stage of my implementation. 
+<br>It is based on the fith version, so you can also define an anchor box to fix some points and select which geometries should get simplified.
+<br>Difference here is, that here are two rivers (Rhine & Oder) added to the TopoJSON. In result, the shared borders of river and country act as topological anchor. Accordingly, are the borders that are shared with a river simplified topological consistent. 
+<br>You can see this very good by comparing this version with the <a href="d3-simplification_with_topojson5.html" target="_blank" class="myLinks">5th version</a>.
+<br>And it makes sense...especially when the border of a country is defined by a river, should this part of the border stay topological similar to the river.
+<br>This is just a demonstration. The anchor points are currently too detailled, what will be fixed in another version, and linked accordingly
+</div>
+
+<form>
+  <p>Which geometries should get simplified:</p>
+  <p>
+    <input type="radio" name="SimplyRadioButtons" value="path.boundary" onChange="changedRB(value)"> Borders
+    <input type="radio" name="SimplyRadioButtons" value="path.river" onChange="changedRB(value)"> River
+    <input type="radio" name="SimplyRadioButtons" value="path" onChange="changedRB(value)" checked> Everything
+  </p>
+</form>
+
+<div id="mBar"></div>
+<div id=map></div>
+
+<footer>
+  <aside>March 26, 2013</aside>
+  <a href="../index.html" rel="author" class="myLinks">Ralf Klammer</a>
+</footer>
+
+<script type="text/javascript">
+var valueRB = 'path';
+function changedRB(d){
+	valueRB = d;
+	doFeatureSelection()
+}
+function doFeatureSelection(){
+	feature = dataContainerGroup.selectAll(valueRB);
+}
+
+	var map = L.map('map').setView([51, 11], 6)
+	var cloudmade = L.tileLayer('http://{s}.tile.cloudmade.com/{key}/{styleId}/256/{z}/{x}/{y}.png', {
+			attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 CloudMade',
+			key: 'BC9A493B41014CAABB98F0471D759707',
+			styleId: 22677
+		}).addTo(map);	
+	
+var mapWidth = map.getSize().x
+	mapHeigth = map.getSize().y
+	menuHeight = 100;
+
+var menuContainer = d3.select("#mBar").append("svg")
+	.attr("width", mapWidth)
+	.attr("height", menuHeight);
+//	.style("border","1px solid grey");
+
+//define all scroll bar objects and group them
+//+++++++++
+var scrollGroup = menuContainer.append("g");
+
+var 	barHeight = 20
+	barWidth = mapWidth
+	folded = false
+	offset = 17
+	foldOffset = 40
+	barPositionX = menuHeight-barHeight-offset;
+
+//define all initial values for the indicators
+var indicators, indiText;
+var indicatorGroup = menuContainer.append("g");
+var indicVals = new Array();
+
+var scrollHead = scrollGroup.append("rect")
+                         .attr("x", 0)
+                         .attr("y", barPositionX-foldOffset)
+			 .attr("rx", 20)
+                         .attr("ry", 20)
+                            .attr("width", barWidth)
+                            .attr("height", 60);
+var scrollbar = scrollGroup.append("rect")
+                            .attr("x", 0)
+                            .attr("y", barPositionX)
+                            .attr("width", barWidth)
+                            .attr("height", barHeight);
+var indicator = scrollGroup.append("rect") 
+	.attr("x",barWidth/2) 
+	.attr("y",barPositionX)
+	.attr("opacity",.2) 
+	.attr("width",10) 
+	.attr("height",barHeight)
+	.style("fill","#ff00ff");
+var text = scrollGroup.append("text")
+	.attr("x", barWidth/2)
+	.attr("y", barPositionX-25)
+	.text( "Scrollbar")
+	.attr("font-family", "sans-serif")
+	.attr("font-size", "14px")
+	.style("text-anchor","middle")				
+	.attr("fill", "white");
+
+
+
+
+//define the informational text
+var textGroup = scrollGroup.append("g");
+
+var textInterMinArea = textGroup.append("text")
+	.attr("class", "info")
+	.attr("x", 0)
+	.attr("y", barPositionX-10)
+	.text("Current Smallest Area: ");
+var textFixedMinArea = textGroup.append("text")
+	.attr("class", "info")
+	.attr("x", barWidth)
+	.attr("y", barPositionX-10)
+	.text("Fixed Smallest Area: ")
+	.attr("text-anchor","end");
+var textZoom = textGroup.append("text")
+	.attr("class", "info")
+	.attr("x", barWidth/2)
+	.attr("y", barPositionX-10)
+	.text("Zoomlevel: ")
+	.attr("text-anchor","middle");
+
+//initialize the scale for the axis of the scrollbar
+var axisScale = d3.scale.log();
+//and all other global callable varaibles
+var path, geom,
+	zoomLevel = map.getZoom(),
+	minArea = new Array(),
+	formatArea = d3.format(".2r")
+	formatPercent = d3.format(".2%"),
+	triangleCache = new Array();
+
+//define the listeners
+scrollbar.on("mousemove",reStyle);
+indicator.on("mousedown",setMinArea);
+scrollHead.on("mousedown",fold);
+text.on("mousedown",fold);
+fold();
+var firstTime = true;
+var simplify = d3.simplify()
+	.projection(geographic);
+var feature;
+var 	dataContainer = d3.select(map.getPanes().overlayPane).append("svg"),
+	dataContainerGroup = dataContainer.append("g").attr("class", "leaflet-zoom-hide");
+
+//define the anchor box
+var 	pointContainer = d3.select(map.getPanes().overlayPane).append("svg"),
+	pointContainerGroup = pointContainer.append("g").attr("class", "leaflet-zoom-hide");
+var point1, point_1,
+	pointArray = [[],[]],
+	pointArrayGeo = [];
+var points = pointContainerGroup.selectAll("circle")
+		.data(pointArray)
+                .enter()
+		.append("circle");
+var rectangle = pointContainerGroup.append("rect")
+		.attr("class","overlay");
+var clickCount = 0,
+	offsets = [0,0],
+	geoOffsets = [0,0],
+	orientation = '';
+map.on("contextmenu",rigthClick);
+map.on("mousemove",mouseMove);
+var dragstart = [];
+map.on("dragstart",function(e){
+	dragstart[0] = map.latLngToLayerPoint(map.getCenter());
+	dragstart[1] = map.getCenter();})
+map.on("dragend",function(e){
+	var dragend = []
+	dragend[0] = map.latLngToLayerPoint(map.getCenter());
+	dragend[1] = map.getCenter();
+	offsets = [offsets[0]+(dragend[0].x-dragstart[0].x),offsets[1]+(dragend[0].y-dragstart[0].y)];
+	geoOffsets = [geoOffsets[0]+(dragend[1].lng-dragstart[1].lng),geoOffsets[1]+(dragend[1].lat-dragstart[1].lat)];
+	reProjectOverlay();
+	})
+
+//+++++++++
+
+//define all spatial objects
+//###############
+
+json = d3.json("simplify_test/de-osm-data_river2.json", function(error, topology) {
+	path = d3.geo.path()
+		.projection(project);
+	landMesh = topojson.mesh(topology, topology.objects.states, function(a, b) { return a.id == b.id; });
+
+	dataContainerGroup.append("path")
+	      .datum(landMesh)
+	      .attr("d", path)
+	      .attr("class", "boundary");
+
+	riverMesh = topojson.mesh(topology, topology.objects.rhein, function(a, b) { return a; });
+
+	dataContainerGroup.append("path")
+	      .datum(riverMesh)
+	      .attr("d", path)
+	      .attr("class", "river");
+
+	riverMesh2 = topojson.mesh(topology, topology.objects.oder, function(a, b) { return a==b; });
+
+	dataContainerGroup.append("path")
+	      .datum(riverMesh2)
+	      .attr("d", path)
+	      .attr("class", "river");
+
+	doFeatureSelection();
+	
+	var bounds = d3.geo.bounds(topojson.object(topology, topology.objects.states));
+	//map.setView([bounds[0][1]+((bounds[1][1]-bounds[0][1])/2), bounds[0][0]+((bounds[1][0]-bounds[0][0])/2)],map.getZoom());
+
+
+	//mySquare.on("mousemove",reStyle);
+      	map.on("viewreset", reset);
+	reset();
+	
+	//define the axis of the scrollbar
+	var 	maxValue = d3.max(triangleCache),
+		minValue = d3.min(triangleCache);
+	axisScale.domain([minValue,maxValue])
+		 .range([0,barWidth]);
+	var formatNumber = d3.format(",.r"), // for formatting integers
+    		formatCurrency = function(d) { return formatNumber(d); };
+	var xAxis = d3.svg.axis()
+		.scale(axisScale)
+		.orient("bottom")
+		.ticks(10, formatCurrency);
+	var xAxisGroup = scrollGroup.append("g")
+		.attr("class", "axis")
+		.call(xAxis)
+		.attr("transform","translate(0,"+(menuHeight-offset)+")")
+		.selectAll("text").attr("text-anchor",function(i,d){
+			if(i==minValue)return "start";
+			else if (i==maxValue)return "end";
+			else return "middle";});
+
+	//included functions
+	//~~~~~~~~~~~~~~~~~~
+	function reset(){
+		zoomLevel = map.getZoom()
+		//if (map.getZoom()<=6)map.setView([bounds[0][1]+((bounds[1][1]-bounds[0][1])/2), bounds[0][0]+((bounds[1][0]-bounds[0][0])/2)],map.getZoom());
+		var tester = false;
+		//check if values exist for indicators and set minAreas when exists
+		for (var i = 0;i<indicVals.length;i++){
+			if (indicVals[i].zoom==map.getZoom()){
+				minArea[zoomLevel]=indicVals[i].minArea;
+				//reset indicator when map is reseted
+				indicator.attr("x",indicVals[i].barVal-5);
+				tester = true;		
+		}}
+		//set minArea to 0 when nothing already defined
+		if (tester==false)minArea[zoomLevel]=0;
+		//reset geometry view
+		var bottomLeft = project(bounds[0]),
+		    topRight = project(bounds[1]);
+		dataContainer 	.attr("width", topRight[0] - bottomLeft[0])
+		    		.attr("height", bottomLeft[1] - topRight[1])
+		    		.style("margin-left", bottomLeft[0] + "px")
+		    		.style("margin-top", topRight[1] + "px");
+		dataContainerGroup   .attr("transform", "translate(" + -bottomLeft[0] + "," + -topRight[1] + ")");
+		reProjectOverlay();
+		reShow();
+		updateFixedText();
+		updateZoom();
+	}		
+
+});
+//###############
+
+//FUNCTIONS
+//***********
+function geographic(x) {return x;}
+function setMinArea(){
+	zoomLevel = map.getZoom()
+	var value = (d3.mouse(this)[0]);
+	minArea[zoomLevel] = axisScale.invert(value);
+	updateFixedText();
+	var checker = false;
+	for (var i = 0;i<indicVals.length;i++){
+		if (indicVals[i].zoom==map.getZoom()){
+			checker=true;
+			indicVals[i].minArea=axisScale.invert(value);
+			indicVals[i].barVal=value;}}
+	if (checker==false){
+		indicVals = addToJson(indicVals,zoomLevel,axisScale.invert(value),value);}
+	if (typeof(indicators)!="undefined"){indicators.remove();indiText.remove();}
+	indicators = indicatorGroup.selectAll("rect")
+		.data(indicVals)
+		.enter()
+		.append("rect")
+		.attr("x", function (d,i) {return d.barVal-5; })
+		.attr("y", barPositionX)
+		.attr("class", "indicator")
+		.attr("width",10) 
+		.attr("height",barHeight);
+	indiText = indicatorGroup.selectAll("text")
+		.data(indicVals)
+		.enter()
+		.append("text")
+		.attr("x",function (d,i) {return d.barVal; })
+		.attr("y", barPositionX+14)
+		.text( function(d){return d.zoom;})
+		.attr("font-family", "sans-serif")
+		.attr("font-size", "14px")
+		.style("text-anchor","middle")				
+		.attr("fill", "white");
+	updateFixedText()
+	
+}
+
+function addToJson(json,zoom,area,barVal){
+	var zooms = {};
+	zooms["zoom"] = zoom;
+	zooms["minArea"] = area;
+	zooms["barVal"] = barVal;
+	json.push(zooms);
+	return json;
+}
+var shownFeats;
+function reStyle(){
+	var value = (d3.mouse(this)[0]);
+	//stores the intermediate result in a not existing zoomlevel...user has to hit the mouse to fix value
+	zoomLevel = -1;
+	minArea[zoomLevel] = axisScale.invert(value);
+	indicator.attr("x",value-5);
+	shownFeats = reShow(feature, path, geom);
+	
+}
+function updateZoom(){
+	textZoom.text(textZoom.text().split(": ")[0]+": "+map.getZoom());
+	updateFixedText();
+}
+function updateInterText(){
+	textInterMinArea.text(textInterMinArea.text().split(": ")[0]+": "+formatArea(minArea[zoomLevel])+"px² / "+formatPercent((shownFeats)/triangleCache.length));}
+function updateFixedText(){
+	for (var i = 0;i<indicVals.length;i++){
+		if (indicVals[i].zoom==map.getZoom()){
+			textFixedMinArea.text(textFixedMinArea.text().split(": ")[0]+": "+formatArea(indicVals[i].minArea)+"px²");	}}
+}
+function fold(){
+ if(folded==false){var value=barHeight+foldOffset;folded=true}
+ else {var value=0;folded=false}
+ scrollGroup.transition().attr("transform","translate(0,"+value+")").duration(1500).ease("bounce");
+ indicatorGroup.transition().attr("transform","translate(0,"+value+")").duration(1500).ease("bounce");
+}
+function project(x) {
+	var point = map.latLngToLayerPoint(new L.LatLng(x[1], x[0]));
+	return [point.x, point.y];}
+
+
+function reShow(){
+	//check if the triangles are already cached or if they have to...to get min/max values
+	if (triangleCache.length==0)var readTriangles = true;
+	else var readTriangles = false;
+
+	var counter, length;
+	feature.attr("d", function(d){
+			if (d.type == 'Polygon'){
+//				if (firstTime == true){simplify(d);}
+				var new_path = path({
+				      type: "Polygon",
+				      coordinates: d.coordinates//.map(mapLineString)
+				    })				
+			}
+			else if (d.type == 'MultiPolygon'){
+//				if (firstTime == true){simplify(d);}
+				var new_path = path({
+				      type: "MultiPolygon",
+				      coordinates: d.coordinates//.map(mapPolygon)
+				    })				
+			}
+			else if (d.type == 'MultiLineString'){
+				if (firstTime == true){simplify(d);}
+				var new_path = path({
+				      type: "MultiLineString",
+				      coordinates: d.coordinates.map(mapLineString)
+				    })				
+			}
+			function mapPolygon(polygon){
+				return polygon.map(mapLineString);
+			}
+			function mapLineString(linestring){
+				counter = 0;
+				length = linestring.length;
+				return linestring.filter(filterPoints);
+			}
+			function filterPoints(point){
+				if (readTriangles==true){
+					//console.log(formatminArea(point[2]));
+					if (point[2]>0.00000002)triangleCache.push(point[2]);
+					else triangleCache.push(0.00000002);
+				}
+				if (point[3]==0){
+					counter++;
+					return point;
+				}
+				else {
+					if (pointArrayGeo.length == 4){
+						if (point[0]>pointArrayGeo[0]&&point[0]<pointArrayGeo[2]&&point[1]>pointArrayGeo[1]&&point[1]<pointArrayGeo[3])
+						return point;
+					}
+					counter++;
+					if (point[2]>minArea[zoomLevel]){return point;}
+				}
+			}
+			return new_path;
+		});
+	updateInterText();
+	if (firstTime == true){	firstTime=false;}
+	}
+
+//functions for anchor box
+function rigthClick(e){
+	var point = [e.originalEvent.layerX,e.originalEvent.layerY];
+	if (clickCount == 0){
+		point_1 = map.layerPointToLatLng(new L.Point(e.originalEvent.layerX,e.originalEvent.layerY));
+		point_1.lng = point_1.lng+geoOffsets[0]
+		point_1.lat = point_1.lat+geoOffsets[1]
+		
+		point1 = point;
+		pointArray[0]=[point1[0]+offsets[0], point1[1]+offsets[1]];
+		pointArray[1]=[];		
+		reloadPoints();
+		rectangle.attr("x", point1[0]+offsets[0])
+		         .attr("y", point1[1]+offsets[1])
+			 .attr("width", 0)
+		  	 .attr("height", 0);
+		clickCount = 1;
+	}
+	else if (clickCount == 1){
+		var point_2 = map.layerPointToLatLng(new L.Point(e.originalEvent.layerX,e.originalEvent.layerY));
+		point_2.lng = point_2.lng+geoOffsets[0]
+		point_2.lat = point_2.lat+geoOffsets[1]
+		if (orientation=='dl')pointArrayGeo=[point_2.lng,point_2.lat,point_1.lng,point_1.lat];
+		else if (orientation=='ul')pointArrayGeo=[point_2.lng,point_1.lat,point_1.lng,point_2.lat];
+		else if (orientation=='ur')pointArrayGeo=[point_1.lng,point_1.lat,point_2.lng,point_2.lat];
+		else if (orientation=='dr')pointArrayGeo=[point_1.lng,point_2.lat,point_2.lng,point_1.lat];
+		pointArray[1]=[point[0]+offsets[0], point[1]+offsets[1]];
+		reloadPoints();
+		reShow();
+		clickCount = 2;
+	}
+	else{
+		pointArray = [[],[]];
+		pointArrayGeo = [];
+		orientation = '';
+		reloadPoints();
+		rectangle.attr("width", 0)
+		  	 .attr("height", 0);
+		clickCount = 0;
+	}
+}
+function mouseMove(e){
+	if (clickCount==1){
+		var point2 = [e.originalEvent.layerX,e.originalEvent.layerY];//projectLatLng(e.latlng);
+		if (point2[0]>point1[0] && point2[1]>point1[1]){
+			orientation = 'dr';
+			rectangle.attr("width", point2[0]-point1[0])
+				 .attr("height", point2[1]-point1[1]);
+		}
+		else if (point2[0]<point1[0] && point2[1]>point1[1]){
+			orientation = 'dl';
+			rectangle.attr("x", point2[0]+offsets[0])
+                		 .attr("y", (point2[1]+offsets[1])-(point2[1]-point1[1]))
+				 .attr("width", point1[0]-point2[0])
+				 .attr("height", point2[1]-point1[1]);
+		}
+		else if (point2[0]>point1[0] && point2[1]<point1[1]){
+			orientation = 'ur';
+			rectangle.attr("x", (point2[0]+offsets[0])-(point2[0]-point1[0]))
+                		 .attr("y", point2[1]+offsets[1])
+				 .attr("width", point2[0]-point1[0])
+				 .attr("height", point1[1]-point2[1]);
+		}
+		else if (point2[0]<point1[0] && point2[1]<point1[1]){
+			orientation = 'ul';
+			rectangle.attr("x", (point2[0]+offsets[0]))
+                		 .attr("y", (point2[1]+offsets[1]))
+				 .attr("width", point1[0]-point2[0])
+				 .attr("height", point1[1]-point2[1]);
+		}
+	}
+}
+function reloadPoints(){
+	points.data(pointArray)
+		.attr("cx", function(d){return d[0]})
+                .attr("cy", function(d){return d[1]})
+                .attr("r", "2")
+                .style("fill", "rgba(0,0,0,0.5)");}
+function reProjectOverlay(){
+	var bottomLeftOverlay = projectLatLng(map.getBounds()._southWest);//project(bounds[0]),
+		topRightOverlay = projectLatLng(map.getBounds()._northEast);//project(bounds[1]);
+	pointContainer 	.attr("width", (topRightOverlay[0] - bottomLeftOverlay[0])+offsets[0])
+	    		.attr("height", (bottomLeftOverlay[1] - topRightOverlay[1])+offsets[1]);
+}
+function projectLatLng(coords) {
+	var point = map.latLngToLayerPoint(new L.LatLng(coords.lat, coords.lng));
+	return [point.x, point.y];}
+</script>
+
+</body>
+</html>

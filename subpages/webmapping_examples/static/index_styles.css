@@ -1,0 +1,14 @@
+#highlight{
+	background: rgba(100,100,100,0.4);
+	border-radius: 15px;
+	}
+body {	background-image:url("RK.png");
+	background-repeat: no-repeat;
+  	background-attachment: fixed;
+	background-position:right bottom;
+}
+h1 {
+  color: #fff;
+  font-family: "Courgette", serif;
+  font-size:250%;
+}

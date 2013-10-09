@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<!--Sourc: http://bost.ocks.org/mike/leaflet/
+	http://bl.ocks.org/mbostock/2206590-->
+<meta charset="utf-8">
+<title>D3 + Leaflet</title>
+<style>
+
+@import url(static/leaflet.css?0.5);
+@import url(./static/myStyles.css);
+
+#map {
+  width: 960px;
+  height: 500px;
+}
+
+path {
+  fill: #000;
+  fill-opacity: .2;
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+path:hover {
+  fill: brown;
+  fill-opacity: .7;
+}
+
+</style>
+
+<h1>D3 + Leaflet + interactivity</h1>
+<div id=text>
+<br>Demonstrates the interactive visualisation of polygonal geometries using Leaflet and D3 overlays
+<br>Therefore, I combined these two examples:
+	<ul>
+		<li><a class="myLinks" href="http://bost.ocks.org/mike/leaflet/" target="_blank" class="myLinks">D3+Leaflet</a></li>
+		<li><a class="myLinks" href="http://bl.ocks.org/mbostock/2206590" target="_blank" class="myLinks">D3+Simplify.js</a></li>
+	  </ul>
+</div>
+
+<p id="map">
+
+<footer>
+  <aside>February 27, 2013</aside>
+  <a class="myLinks" href="../index.html" rel="author">Ralf Klammer</a>
+</footer>
+
+<script src="http://d3js.org/d3.v2.min.js?2.9.3"></script>
+<script src="static/leaflet.js"></script>
+<script>
+var i = 0;
+
+	var map = L.map('map').setView([51, 11], 6)
+
+	
+
+	var cloudmade = L.tileLayer('http://{s}.tile.cloudmade.com/{key}/{styleId}/256/{z}/{x}/{y}.png', {
+			attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 CloudMade',
+			key: 'BC9A493B41014CAABB98F0471D759707',
+			styleId: 22677
+		}).addTo(map);	
+	
+	var mapbox = L.tileLayer('http://{s}.tiles.mapbox.com/v3/milkator.press_freedom/{z}/{x}/{y}.png', {attribution: 'Map data &copy; 2013 Natural Earth, Data &copy; 2013 <a href="http://www.reporter-ohne-grenzen.de/ranglisten/rangliste-2013/">ROG/RSF</a>'});	
+
+	var baseLayers = {
+				"base": cloudmade,
+				"press freedom" : mapbox
+			};
+	
+	L.control.layers(baseLayers).addTo(map);
+
+var svg = d3.select(map.getPanes().overlayPane).append("svg"),
+    g = svg.append("g").attr("class", "leaflet-zoom-hide");
+
+
+d3.json("static/germany_states.json", function(collection) {
+
+  var bounds = d3.geo.bounds(collection),
+      path = d3.geo.path().projection(project);
+
+  var feature = g.selectAll("path")
+      .data(collection.features)
+    .enter().append("path");
+  var zoomed = false;
+
+  map.on("viewreset", reset);
+  reset();
+
+  // Reposition the SVG to cover the features.
+  function reset() {
+    var bottomLeft = project(bounds[0]),
+        topRight = project(bounds[1]);
+
+    svg .attr("width", topRight[0] - bottomLeft[0])
+        .attr("height", bottomLeft[1] - topRight[1])
+        .style("margin-left", bottomLeft[0] + "px")
+        .style("margin-top", topRight[1] + "px");
+
+    g .attr("transform", "translate(" + -bottomLeft[0] + "," + -topRight[1] + ")");
+
+    feature.attr("d", path);
+
+    feature.on("mouseup",function(d){
+	var bounds = d3.geo.bounds(d);
+	console.log(d);
+	var center = new L.LatLng(bounds[0][1]+((bounds[1][1]-bounds[0][1])/2),bounds[0][0]+((bounds[1][0]-bounds[0][0])/2));
+	var southWest = new L.LatLng(bounds[0][1], bounds[0][0]),
+	    northEast = new L.LatLng(bounds[1][1], bounds[1][0]),
+	    bounds = new L.LatLngBounds(southWest, northEast);
+	if (zoomed == false){
+		map.setView( center, map.getZoom()+1);
+		zoomed=true;
+//		feature.style("fill","#ff00ff");
+	}
+	else {map.setView( center, map.getZoom()-1);
+		zoomed=false;}
+	});
+  }
+
+  // Use Leaflet to implement a D3 geographic projection.
+  function project(x) {
+    var point = map.latLngToLayerPoint(new L.LatLng(x[1], x[0]));
+	if (i === 0){
+		console.log(x);
+		console.log(point);
+		i++;
+	}
+    return [point.x, point.y];
+  }
+});
+
+</script>
+<script src="../highlight.min.js"></script>

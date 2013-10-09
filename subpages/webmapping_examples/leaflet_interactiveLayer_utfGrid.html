@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<!--Sourc: http://leafletjs.com/examples/quick-start.html//-->
+<html>
+<head>
+	<link rel="stylesheet" href="static/leaflet.css" />
+	<link rel="stylesheet" href="static/myStyles_2.css" />
+	<script src="static/leaflet.js"></script>
+	<script type="text/javascript" src="static/press.json"></script>
+	<script src="static/leaflet.utfgrid.js"></script>
+	<style>
+	#map { height: 500px; width:960px; cursor: pointer;}
+	.info {
+	    padding: 6px 8px;
+	    font: 14px/16px Arial, Helvetica, sans-serif;
+	    background: white;
+	    background: rgba(255,255,255,0.8);
+	    box-shadow: 0 0 15px rgba(0,0,0,0.7);
+	    border-radius: 10px;
+	}
+	.info h4 {
+	    margin: 0 0 5px;
+	    color: #777;
+	}
+	values{color:#777;}
+	</style>
+
+	<script>
+	
+	</script>
+</head>
+<body>
+
+<h1>Leaflet + UTFGrid</h1>
+<div id=text>
+<br>This example demonstrates the general implementation for interactive overlays using Leaflet & an <a class="myLinks" href="https://github.com/mapbox/utfgrid-spec/wiki/Implementations" target="_blank">UTFGrid</a>.
+<br>In result, it is possible to:
+	<ul>
+		<li>highlight features on hovering</li>
+		<li>display attribute values on hovering & clicking</li>
+	</ul>
+<br>But in contrast to a <a class="myLinks" href="leaflet_interactiveLayer_geoJson_forServer.html" target="_blank">GeoJSON</a> file is this not possible:<ul>
+		<li>zoom to features on clicking</li>		
+	  </ul>
+		
+<br>The necessary information is taken from an mbtiles file that is/was:
+	<ul>
+		<li>created & exported using <a class="myLinks" href="http://mapbox.com/tilemill/" target="_blank">TileMill</a></li>
+		<li>uploaded to & provided by  <a class="myLinks" href="http://mapbox.com/" target="_blank">MapBox</a></li>
+		<li>provides UTFGrid as tiled Json files</li>
+	</ul>
+<br>Helpfull ressources:
+	<ul>
+		<li><a class="myLinks" href="https://github.com/mapbox/utfgrid-spec" target="_blank">UTFGrid Specifications</a></li>
+		<li><a class="myLinks" href="https://github.com/mapbox/utfgrid-spec/blob/master/1.3/utfgrid.md" target="_blank">UTFGrid Specifications 1.3</a></li>
+		<li><a class="myLinks" href="http://blog.perrygeo.net/2012/08/20/creating-utfgrids-directly-from-a-polygon-datasource/" target="_blank">UTFGrid from Polygon datasource</a></li>
+		<li><a class="myLinks" href="http://mapbox.com/blog/how-interactivity-works-utfgrid/" target="_blank">UTFGrid - How it works</a></li>
+		<li><a class="myLinks" href="http://mapbox.com/demo/visiblemap/" target="_blank">UTFGrid - Demo</a></li>		
+	  </ul>
+</div>
+
+<div id="map"></div>
+<div id="click2"></div>
+<div id="hover"></div>
+
+<footer>
+  <aside>January 26, 2013</aside>
+  <a class="myLinks" href="../index.html" rel="author">Ralf Klammer</a>
+</footer>
+<script>
+	
+		var mapbox = L.tileLayer('http://{s}.tiles.mapbox.com/v3/milkator.press_freedom/{z}/{x}/{y}.png', {attribution: 'Map data &copy; 2013 Natural Earth, Data &copy; 2013 <a href="http://www.reporter-ohne-grenzen.de/ranglisten/rangliste-2013/">ROG/RSF</a>'});
+
+		var cloudmade = L.tileLayer('http://{s}.tile.cloudmade.com/{key}/{styleId}/256/{z}/{x}/{y}.png', {
+			attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 CloudMade, Data &copy; 2013 <a href="http://www.reporter-ohne-grenzen.de/ranglisten/rangliste-2013/">ROG/RSF</a>',
+			key: 'BC9A493B41014CAABB98F0471D759707',
+			styleId: 22677
+		});
+
+		var utfGrid = new L.UtfGrid('http://{s}.tiles.mapbox.com/v3/milkator.press_freedom/{z}/{x}/{y}.grid.json?callback={cb}', {
+			resolution: 4
+		});
+
+		
+		//two different versions of calling a function
+			//1st: defining it as separate function...needs a name
+		utfGrid.on('click', clicking) 
+			.on('mouseover', hovering)
+			//2nd: defining it directly...needs no name, just 'function'
+			.on('mouseout', function (e) {
+				//console.log('mouseout: ' + e.data.name);
+			});
+	
+		function hovering(e){
+			if (e.data) {
+				document.getElementById('hover').innerHTML = "<h4>World wide press freedom</h4>" +  (e ?
+			"<b>" + e.data.name + "</b><br />Ranking position: " + e.data.rank 
+			: 'Hover over a state');
+			} else {
+				document.getElementById('hover').innerHTML = 'hover: nothing';
+			}
+			//console.log('mouseout: ' + e.data.admin);
+			var layer = e.target;
+
+		    	info.update(e);
+		}
+
+		function clicking(e){
+			if (e.data) {
+				document.getElementById('click2').innerHTML = 'click: ' + e.data.rank;
+			} else {
+				document.getElementById('click2').innerHTML = 'click: nothing';
+			}
+			//console.log('mouseout: ' + e.data.admin);
+		}
+		function highlightFeature(e) {
+		    var layer = e.target;
+
+		    info.update(layer.feature.properties);
+		}		
+
+		var info = L.control();
+		info.options.position = 'bottomright';
+		info.onAdd = function (map) {
+		    this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+		    this.update();
+		    return this._div;
+		};
+
+		// method that we will use to update the control based on feature properties passed
+		info.update = function (props) {
+		    this._div.innerHTML = "<h4>World wide press freedom</h4>" +  (props ?
+			"<values><b>" + props.data.name + "</b><br />Ranking position: " + props.data.rank+"</values>"
+			: 'Hover over a state');
+		};
+		//info.addTo(map);
+		
+
+		var map = L.map('map')
+				.setView([30,0], 2)
+				.addLayer(utfGrid)
+				.addLayer(cloudmade)
+				.addLayer(mapbox)
+				.addControl(info);
+		var baseLayers = {
+					"base": cloudmade,
+					"press freedom" : mapbox
+				};
+		
+		L.control.layers(baseLayers).addTo(map);
+</script>
+
+
+</body>
+</html>

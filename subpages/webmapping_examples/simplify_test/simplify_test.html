@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<!--Source: http://bost.ocks.org/mike/simplify/-->
+<meta charset="utf-8">
+<title>Line Simplification</title>
+<link rel="stylesheet" href="../static/myStyles.css" />
+	
+<style>
+
+#chart {
+  height: 580px;
+}
+
+#chart .background {
+  fill: none;
+  pointer-events: all;
+}
+
+#chart text {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 64px;
+  pointer-events: none;
+}
+
+#chart path {
+  fill: #eee;
+  stroke: #000;
+  pointer-events: none;
+}
+
+.example circle {
+  stroke: #fff;
+}
+
+.example path {
+  fill: none;
+  stroke: #000;
+}
+
+.example .line,
+.example circle {
+  stroke-width: 1.5px;
+}
+
+.example text {
+  font: 10px sans-serif;
+}
+
+.example .triangle {
+  fill: #000;
+  fill-opacity: .2;
+  stroke-dasharray: 4,4;
+}
+
+#example1 .triangle {
+  display: none;
+}
+div {color:white;}
+
+</style>
+<body>
+
+<h1>Simplify.js - Germany</h1>
+<div id=text>
+<br>Demonstrates interactive attribute driven visualisation of the simplified german administrative boundary on mouse moving.
+<br>Therefore, I used Mike Bostocks great example:
+	<ul>
+		<li><a class="myLinks" href="http://bost.ocks.org/mike/simplify/" target="_blank">D3+Simplify.js</a></li>
+	  </ul>
+You'll also find detailled information on the applied algorithm, which is the well-known Visvalingam algorithm!
+<br>Mouseover to simplify the geometry. The numbers shown indicate the area of the smallest retained feature and the percentage retained.
+</div>
+<p id="chart">
+
+
+<aside></aside>
+
+<footer>
+  <aside>Frebruary 26, 2013</aside>
+  <a class="myLinks" href="../../index.html" rel="author">Ralf Klammer</a>
+</footer>
+
+<script src="http://d3js.org/d3.v2.js?2.9.1"></script>
+<script src="simplify.js"></script>
+
+<script>(function() {
+
+var width = 960,
+    height = parseInt(d3.select("#chart").style("height")),
+    minArea = 1,
+    formatArea = d3.format(".2r"),
+    formatPercent = d3.format(".2%");
+
+var x = d3.scale.sqrt()
+    .domain([0, 100])
+    .range([0, width/2]);
+
+var svg = d3.select("#chart").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+var bg = svg.append("rect")
+    .attr("class", "background")
+    .attr("width", width)
+    .attr("height", height);
+
+var shape = svg.append("path");
+
+var text = svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", height / 2)
+    .attr("dy", ".35em")
+    .attr("text-anchor", "middle");
+
+//console.log(text);
+
+var path = d3.geo.path()
+    .projection(function(d) { return [d[0], d[1]]; });
+
+var simplify = d3.simplify()
+    //.projection(d3.geo.albers().scale(1300).translate([450, 300]));
+    .projection(d3.geo.mercator().scale(15000).translate([100, 2800]));
+
+d3.json("germany.json", readJSON);
+
+  function readJSON(germany) {
+	//console.log(germany.features.length);
+	if (germany.features.length === 1){var us = germany.features[0].geometry;}
+	console.log(germany.features[0].geometry);
+	var m = us.coordinates.reduce(redPoly, 0);
+	function redPoly(m, polygon){
+		return m + polygon.reduce(redLine, 0);}
+ 	function redLine(m, lineString){
+		return m + lineString.length;}
+
+	//simplify(us);
+	test(us);
+	redraw("initially");
+
+	bg.on("mousemove", mouseAction);
+
+	  function mouseAction() {
+		    minArea = x.invert(d3.mouse(this)[0]);
+		    //console.log(minArea);
+		    redraw("redrawing");
+		}
+
+	  function redraw(where) {
+	    var n = 0;
+	    //console.log(path);
+	    shape.attr("d", path({
+	      type: "MultiPolygon",
+	      coordinates: us.coordinates.map(mapPolygon)
+	    }));
+	    function lineFilter(point){return point[2] >= minArea && ++n;}
+	    function mapLinestring(lineString){return lineString.filter(lineFilter);}
+	    function mapPolygon(polygon){return polygon.map(mapLinestring);}
+
+	    text.text(formatArea(minArea) + "px² / " + formatPercent(n / m));
+	  }
+	function test(us){console.log("Simplifies only once!!!");simplify(us);}
+  }
+
+})()</script>
+

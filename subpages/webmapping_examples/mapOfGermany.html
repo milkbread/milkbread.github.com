@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<!--	http://bost.ocks.org/mike/map/
+-->
+<meta charset="utf-8">
+<link rel="stylesheet" href="../static/myStyles.css" />
+<link rel="stylesheet" href="static/myStyles.css" />
+	
+<style>
+.subunit{fill:#fff;}
+.subunit.Nordrhein-Westfalen{ fill: #aba; }
+.subunit.Baden-Württemberg{ fill: #bab; }
+.subunit.Hessen{ fill: #bcb; }
+.subunit.Niedersachsen{ fill: #cbc; }
+.subunit.Thüringen{ fill: #cdc; }
+.subunit.Hamburg{ fill: #dcd; }
+.subunit.Schleswig-Holstein{ fill: #ded; }
+.subunit.Rheinland-Pfalz{ fill: #ede; }
+.subunit.Saarland{ fill: #efe; }
+.subunit.Sachsen-Anhalt{ fill: #fef; }
+.subunit.Brandenburg{ fill: #aaa; }
+.subunit.Mecklenburg-Vorpommern{ fill: #bbb; }
+.subunit.Bayern { fill: #ccc; }
+.subunit.Sachsen { fill: #ddd; }
+.subunit.Bremen { fill: #eee; }
+.subunit.Berlin { fill: #fff; }
+
+.subunit-boundary {
+  fill: none;
+  stroke-width:1px;
+  stroke: #777;
+  stroke-dasharray: 2,2;
+  stroke-linejoin: round;
+}
+
+.place,
+.place-label {
+  fill: #444;
+  font-size:14px;
+}
+
+text {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 20px;
+  pointer-events: none;
+}
+.subunit-label {
+  fill: #777;
+  fill-opacity: .5;
+  font-size: 30px;
+  font-weight: 200;
+  text-anchor: middle;
+}
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/topojson.v0.min.js"></script>
+<h1>D3 + TopoJSON</h1>
+<div id=text>
+<br>This example demonstrates the general implementation of D3 on using the <a class="myLinks" href="https://github.com/mbostock/topojson/" target="_blank">TopoJSON</a> file format to display german administrative boundaries.
+
+<br><br>The creation of this map is fundamentally based on the descriptions of Mike Bostock:
+	<ul>
+		<li><a class="myLinks" href="http://bost.ocks.org/mike/map/" target="_blank">Let's make a map</a></li>
+		
+	  </ul>
+Helpfull ressources:
+	<ul>
+		<li><a class="myLinks" href="https://github.com/mbostock/topojson/wiki" target="_blank">TopoJSON Documentaion</a></li>
+		<li><a class="myLinks" href="http://prag.ma/code/d3-cartogram/#popest/2010" target="_blank">Dynamic cartograms</a></li>
+	</ul>
+</div>
+
+<script>
+
+var width = 1050,
+    height = 1400;
+
+var path = d3.geo.path();
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+d3.json("data/de.json", showData);
+
+function showData(error, de) {
+	var subunits = topojson.object(de, de.objects.subunits);
+
+	var projection = d3.geo.mercator()
+	    .center([10.5, 51.35])
+    	    .scale(5000)
+	    .translate([width / 2, height / 2]);
+
+	var path = d3.geo.path()
+	    .projection(projection)
+	    .pointRadius(4);
+
+	svg.append("path")
+	    .datum(subunits)
+	    .attr("d", path)
+
+	svg.selectAll(".subunit")
+	    .data(topojson.object(de, de.objects.subunits).geometries)
+	  .enter().append("path")
+	    .attr("class", function(d) { return "subunit " + d.properties.name; })
+	    .attr("d", path)
+	    .on("click", click);
+
+	function click(a){
+		console.log(a.properties.name);
+	}
+
+	svg.append("path")
+	    .datum(topojson.mesh(de, de.objects.subunits, function(a,b) { if (a!==b || a.properties.name === "Berlin"|| a.properties.name === "Bremen"){var ret = a;}return ret;}))
+	    .attr("d", path)
+	    .attr("class", "subunit-boundary");
+
+	svg.append("path")
+	    .datum(topojson.object(de, de.objects.places))
+	    .attr("d", path)
+	    .attr("class", "place");
+
+	svg.selectAll(".place-label")
+	    .data(topojson.object(de, de.objects.places).geometries)
+	  .enter().append("text")
+	    .attr("class", "place-label")
+	    .attr("transform", function(d) { return "translate(" + projection(d.coordinates) + ")"; })
+	    .attr("dy", ".35em")
+	    .text(function(d) { if (d.properties.name!=="Berlin"&&d.properties.name!=="Bremen"){return d.properties.name;} })
+	    .attr("x", function(d) { return d.coordinates[0] > -1 ? 6 : -6; })
+	    .style("text-anchor", function(d) { return d.coordinates[0] > -1 ? "start" : "end"; });
+
+	svg.selectAll(".subunit-label")
+	    .data(topojson.object(de, de.objects.subunits).geometries)
+	  .enter().append("text")
+	    .attr("class", function(d) { return "subunit-label " + d.properties.name; })
+	    .attr("transform", function(d) { return "translate(" + path.centroid(d) + ")"; })
+	    .attr("dy", function(d){ 
+		if(d.properties.name==="Sachsen"||d.properties.name==="Thüringen"||d.properties.name==="Sachsen-Anhalt"||d.properties.name==="Rheinland-Pfalz")
+			{return ".9em"}
+		else if(d.properties.name==="Brandenburg"||d.properties.name==="Hamburg")
+			{return "1.5em"}
+		else if(d.properties.name==="Berlin"||d.properties.name==="Bremen")
+			{return "-1em"}else{return ".35em"}})
+	    .text(function(d) { return d.properties.name; });
+	
+}
+</script>
+
+<footer>
+  <aside>February 15, 2013</aside>
+  <a class="myLinks" href="../index.html" rel="author">Ralf Klammer</a>
+</footer>
+</body>

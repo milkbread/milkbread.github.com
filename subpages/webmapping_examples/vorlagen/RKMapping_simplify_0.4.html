@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <script src="http://d3js.org/d3.v3.min.js"></script> 
+ <script src="../static/topojson_v1.js"></script>
+ <script src="../static/RKMapping_0.3.js"></script>
+ <script src="../static/leaflet.js"></script>
+ <script src="../simplify_test/simplify_RK_1.0.js"></script>
+
+<style>
+  @import url(../static/myStyles.css);
+  @import url(../static/leaflet.css?0.5);
+
+ #map {
+   width: 960px;
+   height: 600px;
+  }
+#overlay_poly{
+ fill:rgba(200,200,200,1);
+ stroke:rgba(200,0,0,1);
+ opacity:0.3;
+ stroke-width:0.5px;
+}
+#overlay_poly:hover{
+ opacity:0.8;
+}
+#overlay_line{
+ fill:none;
+ stroke:rgba(200,0,0,1);
+ stroke-width:0.5px;
+}</style>
+</head>
+<body>
+<h1>ArcGeometries <br>- Example -</h1>
+<h1 class=sub>simple example on how use 'RKMapping_0.3' <br>to get the geometries of each arc and build polygons from them!</h1>
+
+<div id=map></div>
+
+<script>
+var map = L.map('map').setView([51.25, 11], 6);
+	
+var stamen = L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.png', {attribution: 'Add some attributes here!'}).addTo(map);	
+var baseLayers = {"stamen": stamen};
+L.control.layers(baseLayers).addTo(map);
+
+var overLayer = new mapOverlay(map);
+var infoContainer = d3.select("body").append("info").text("This will show you some information!")
+
+var simplify = d3.simplify()
+	.projection(function (x) {return x;});
+	
+d3.json("static/vg1000_topo.json", function(error, topology) {
+	var pure_states = topology.objects.vg1000_bld;
+	
+	//get all arc-geometries of the selected objects 'pure_states'
+	var arcCollection = getArcs(topology, pure_states.geometries);
+	var polygons = getGeometries(pure_states.geometries, arcCollection)
+	var polyCollection = {type: 'GeometryCollection', geometries:polygons}
+
+	overLayer.addGeometries(polygons,"path");
+	overLayer.showAll();
+	reset();
+	map.on("viewreset", reset);
+	overLayer.features.attr("id","overlay_poly")
+			.on("mouseover",showInfo)
+			.on("mousedown",zoomToObject);
+
+	function reset(){
+		console.log("test")
+		overLayer.resetView(d3.geo.bounds(polyCollection));
+		overLayer.showAll();
+	}
+	function showInfo(value){
+		infoContainer.text("You hovered over: "+value.properties.GEN +' click it and see what happens!')
+	}
+     	function zoomToObject(d){
+		var local_bounds = d3.geo.bounds(d),
+		center = new L.LatLng(local_bounds[0][1]+((local_bounds[1][1]-local_bounds[0][1])/2),local_bounds[0][0]+((local_bounds[1][0]-local_bounds[0][0])/2)),
+		southWest = new L.LatLng(local_bounds[0][1], local_bounds[0][0]),
+		northEast = new L.LatLng(local_bounds[1][1], local_bounds[1][0]);
+		var local_bounds = new L.LatLngBounds(southWest, northEast);
+		map.setView( center, map.getBoundsZoom( local_bounds));
+	}
+
+})
+</script>
+<footer>
+  <aside>May 14, 2013</aside>
+  <a href="../index.html" rel="author" class="myLinks">Ralf Klammer</a>
+</footer>
+</body>
+</html>

@@ -1,0 +1,42 @@
+text{
+ font-family:sans-serif;
+ font-size:12px;
+ fill:white;
+}
+.scroll_head{
+ font-size:14px;
+ text-anchor:middle;
+}
+.scroll_text1{
+ text-anchor:middle;
+}
+.scroll_text2{
+ text-anchor:end;
+}
+.scroll_text3{
+ text-anchor:start;
+}
+  #bar{
+   margin-bottom:0;
+ }
+ rect, scrollHead{
+   fill:#000;
+   fill-opacity:1;
+  }
+ 
+  .axis path,
+  .axis line{
+   fill: none;
+   stroke: grey;
+   stroke-width:4;
+   shape-rendering: crispEdges;
+  }
+  .axis text {
+   font-family: sans-serif;
+   font-size: 11px;
+   text-anchor:left;
+  }
+   .indicator{
+   fill:green;
+   fill-opacity:0.6;
+  }

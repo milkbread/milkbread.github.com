@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <script src="http://d3js.org/d3.v3.min.js"></script> 
+ <script src="static/topojson.js"></script>
+ <script src="static/leaflet.js"></script>
+ <script src="d3-sorted_polygons7.1-functions.js"></script>
+
+
+<style>
+  @import url(./static/myStyles.css);
+  @import url(static/leaflet.css?0.5);
+  @import url(d3-sorted_polygons7.1-classes.css);
+</style>
+</head>
+<h1>Sorted german administrative units</h1>
+<h1 class=sub>visualizes the german municipalities sorted, according to a selectable attribute</h1>
+<body>
+<div id="view"></div>
+<div id=map></div>
+<div id="text" class="upper">
+	<div class="table"><div class="tr">
+		<div class="td2"><form class="attributes">
+		  <h>Choose the category!</h><br><advice>Select the category of units, that is analysed and visualised.</advice><br><br>
+		    <input type="radio" name="rbt_category" value="states" onChange="changedCat(value)" checked> States<br>
+		    <input type="radio" name="rbt_category" value="units" onChange="changedCat(value)"> Counties<br>
+		    <input type="radio" name="rbt_category" value="munics" onChange="changedCat(value)"> Municipalities (!Many objects - Filter defined?!)<br>
+		 </form><br>
+		</div>
+		<div class="td2">
+		<form class="attributes">
+		  <h>Choose an attribute!</h><br><advice>Select the attribute, that is used<br>to sort the units.</advice><br><br>
+		    <input type="radio" name="rbt_attrib" value="Area" onChange="changedRB(value)" checked> Area<br>
+		    <input type="radio" name="rbt_attrib" value="Length" onChange="changedRB(value)"> Length of Boundary<br>
+		    <input type="radio" name="rbt_attrib" value="EWZ" onChange="changedRB(value)"> Population<br>
+		 </form><br></div></div></div>
+	</div>
+    	<div id="text">
+	<br><div id="version_info">Basically, the dataset is so big, that it does not make sense to show all municipalities!<br>
+	That is why you've got the option to filter the data in relation to the displayed attributes!</div>
+	<br><h>References</h>
+	<ul>
+	<li>Jason Davies inspired me to this application, by his <a class="myLinks" href="http://www.jasondavies.com/maps/countries-by-area/" target="_blank"> 'Countries by Area'</a>  Visualisation
+	</li><li>Data (VG250) is provided by the german NMA: <a class="myLinks" href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=deu&gdz_akt_zeile=5&gdz_anz_zeile=1&gdz_unt_zeile=15&gdz_user_id=0" target="_blank"> GeoBasis-DE / BKG</a>
+	</li><li>Mike Bostocks scripts <a class="myLinks" href="http://d3js.org/" target="_blank">D3.js</a> and  <a class="myLinks" href="https://github.com/mbostock/topojson" target="_blank">TopoJSON</a> are used to realize the visualization!
+	<br>...and this was a good inspiration for the <a class="myLinks" href="http://bl.ocks.org/syntagmatic/2584519" target="_blank"> horizontal scroll</a>!
+	</li><li>Help on sorting arrays in JavaScript:  <a class="myLinks" href="http://www.javascriptkit.com/javatutors/arraysort.shtml" target="_blank">JavaScriptKit.com</a>
+	</li><li>Help on making the visualisation scroll:  <a class="myLinks" href="https://groups.google.com/d/msg/d3-js/bUvpsDXcULk/eEDaaqaua-cJ" target="_blank">simple...isn't it ;-)</a>
+	</li><li>The colors are identified with the help of <a class="myLinks" href="http://colorbrewer2.org/" target="_blank">Colorbrewer 2.0</a>!
+	</li><li>Mapping framework: <a class="myLinks" href="http://leafletjs.com/" target="_blank">Leaflet</a>
+	</li><li>Background tiles are provided by: <a class="myLinks" href="http://maps.stamen.com/#toner/12/37.7706/-122.3782" target="_blank">Stamen Design</a> and/or <a class="myLinks" href="http://cloudmade.com/" target="_blank">Cloudmade</a>
+	</li>
+	</ul>
+</div>
+<footer>
+  <aside>May 08, 2013</aside>
+  <a href="../index.html" rel="author" class="myLinks">Ralf Klammer</a>
+</footer>
+<script>
+//Leaflet
+//*********************
+var map = L.map('map').setView([51.25, 11], 6);
+	
+var stamen = L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.png', {
+			attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 <a href="http://maps.stamen.com/#toner/8/51.072/14.584" rel="author" target="_blank"> Stamen</a>, Data-overlay: <a href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=eng&gdz_akt_zeile=5&gdz_anz_zeile=1&gdz_unt_zeile=18&gdz_user_id=0" rel="author" target="_blank">&copy; GeoBasis-DE / BKG 2013</a>'
+		}).addTo(map);	
+var cloudmade = L.tileLayer('http://{s}.tile.cloudmade.com/{key}/{styleId}/256/{z}/{x}/{y}.png', {
+			attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 CloudMade, Data-overlay: <a href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=eng&gdz_akt_zeile=5&gdz_anz_zeile=1&gdz_unt_zeile=18&gdz_user_id=0" rel="author" target="_blank">&copy; GeoBasis-DE / BKG 2013</a>',
+			key: 'BC9A493B41014CAABB98F0471D759707',
+			styleId: 22677
+		});
+var baseLayers = {"stamen": stamen, "cloudmade" : cloudmade};
+var info = L.control();
+info.onAdd = function (map) { this._div = L.DomUtil.create('div', 'info'); this.update(); return this._div;};
+// method that we will use to update the control based on feature properties passed
+info.update = function (d) {
+    this._div.innerHTML = '<h4>Whats that?</h4>' +  (d ?
+	'<values><b>' + d.properties.GEN + '</values>'
+	: 'Hover over the map!');
+};
+
+info.addTo(map);
+L.control.layers(baseLayers).addTo(map);
+//*********************
+//D3+Leaflet
+//*********************
+var 	mapData = d3.select(map.getPanes().overlayPane).append("svg"),
+	overlay = mapData.append("g").attr("class", "leaflet-zoom-hide"),
+	path_geo = d3.geo.path()
+		.projection(project),
+	features, class_vals;
+//D3
+//*********************
+//all needed variables
+var 	bounds, w_view = 960, h_view = 280, w_svg = 110, h_svg = 100, info_pos = [5, 70], scale, trans, attribute = 'Area', 
+	category, geoms, slice_cache1, slice_cache2, slice_par, slice_par4, trans_par_ed = [], 
+	unit_selector, search_unit = [], sliced_geoms, bounds_map = [], states, units, munics, clicked_cache,
+	slice_params = [0,12000], min_attribs = [200,0,0], //[Area, Length, EWZ]
+	path = d3.geo.path().projection(normalize_projection);
+//define the initial element
+d3.select("#view").style("width",w_view).style("height",h_view);
+//add the parameter for the filtering of attributes
+setInfoText();
+
+//add a table ('div - class:table') to the width-limited div-element 'view'
+//...and...
+//add one line ('div - class:tr')
+var table = d3.select("#view").append("div").attr("class","table").append("div").attr("class","tr");
+d3.json("static/vg250_gem_topo.json", function(error, topology) {
+	states = topojson.object(topology, topology.objects.vg250_bld);
+	units = topojson.object(topology, topology.objects.vg250_krs);
+	//console.log(topology.objects);
+	munics = topojson.object(topology, topology.objects.vg250_gem);
+	bounds_map[0] = d3.geo.bounds(states);
+	bounds_map[1] = d3.geo.bounds(units);
+	bounds_map[2] = d3.geo.bounds(munics);
+
+	slice_cache1 = slice_par.append("slice");
+	slice_par.append("br")
+	slice_par.append("br")
+	slice_cache2 = slice_par.append("slice");
+//	doVisualisation();
+	changedCat('states');
+})
+
+
+
+
+</script>
+
+</body>
+</html>

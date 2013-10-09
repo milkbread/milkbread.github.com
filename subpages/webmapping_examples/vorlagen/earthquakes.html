@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <script src="http://d3js.org/d3.v3.min.js"></script> 
+ <script src="../static/topojson_v1.js"></script>
+ <script src="../static/RKMapping_0.4.js"></script>
+ <script src="../static/leaflet.js"></script>
+ <script src="../simplify_test/simplify_RK_1.0.js"></script>
+ <script src="../static/crossfilter.min.js"></script>
+
+<style>
+  @import url(../static/myStyles.css);
+  @import url(../static/leaflet.css?0.5);
+
+ #map {
+   width: 960px;
+   height: 600px;
+  }
+input{
+ width: 40px;
+}
+#polys:hover{
+ fill:rgba(200,0,0,0.8);
+}
+#polys{
+ stroke-width:1px;
+ stroke:rgba(255,255,255,1);
+}
+.overlay_poly{
+ fill:rgba(100,100,100,0.3);
+}
+.overlay_multipoly{
+ fill:rgba(0,0,0,0.7);
+}
+#delaunay{
+ fill:none;
+ stroke:rgba(0,0,255,1);
+ stroke-width:1px;
+}
+
+circle{
+}
+</style>
+</head>
+<body>
+<h1>D3 + Crossfilter</h1>
+<h1 class=sub>this is a basic example on the usage of Crossfilter in combination with D3.<br>This exemplary map is a visualistation of the world wide earthquakes between 01.01.2012 & 31.12.2012</h1>
+<div id=text>
+By this example, I demonstrate how to apply <a href="https://github.com/square/crossfilter/wiki" target="_blank" class="myLinks">'crossfilter.js'</a> for quick feature filtering...in a very reduced form.<br>
+Basically, I used two sources, to get in touch with 'crossfilter.js':
+	<ul>
+		<li><a href="https://github.com/square/crossfilter/wiki/API-Reference" target="_blank" class="myLinks">Documentation of crossfilter</a></li>
+		<li><a href="http://blog.rusty.io/2012/09/17/crossfilter-tutorial/" target="_blank" class="myLinks">Tutorial on the basic terminology of crossfilter</a></li>
+	</ul>
+But I also needed some help for the scales or replied to own examples:
+	<ul>
+		<li><a href="https://github.com/mbostock/d3/wiki/Quantitative-Scales" target="_blank" class="myLinks">D3 - Scales</a></li>
+		<li><a href="RKMapping_example.html" target="_blank" class="myLinks">D3 + Leaflet</a></li>
+	</ul>
+
+</div>
+<div id=hover_info></div>
+<div id=map></div>
+<div>
+<input type=text id=maxVal name=maxVal onChange=reShow(value) value=0>
+</div>
+
+<script>
+var map = L.map('map').setView([40, 11], 2);
+	
+var stamen = L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.png', {attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 <a href="http://maps.stamen.com/#toner/8/51.072/14.584" rel="author" target="_blank"> Stamen</a>, Data-overlay: <a href="http://earthquake.usgs.gov/earthquakes/" rel="author" target="_blank">&copy; USGS</a>'}).addTo(map);
+var cloudmade = L.tileLayer('http://{s}.tile.cloudmade.com/{key}/{styleId}/256/{z}/{x}/{y}.png', {attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 CloudMade, Data-overlay: <a href="http://earthquake.usgs.gov/earthquakes/" rel="author" target="_blank">&copy; USGS</a>',key: 'BC9A493B41014CAABB98F0471D759707',styleId: 22677	});
+	
+var baseLayers = {"stamen": stamen, "cloudmade": cloudmade};
+L.control.layers(baseLayers).addTo(map);
+
+var overLayer = new mapOverlay(map);
+var infoContainer = d3.select("#hover_info").append("info").text("This will show you some information!")
+
+var simplify = d3.simplify()
+	.projection(function (x) {return x;});
+
+var maximum = 0;
+
+var colors = {fill:["#00f", "#f00"], opacity:0.25, stroke:["#f00","#0ff"]}
+
+var magniExt = [2,4];
+
+d3.select("#time").append("text").text("Time")
+
+var points, size, color, overlay, earthquakes, minMax, count, magniDimension, opacity;
+	
+d3.json("static/earthquakes2012.json", function(collection) {
+	//get the GeoJSON-features
+	var quakes = collection.features
+	//make a new crossfilter from the features
+	earthquakes = crossfilter(quakes);
+
+	//testing crossfilter by counting all features
+	var n = earthquakes.groupAll().reduceCount().value();
+	console.log("There are "+ n +" eathquakes within that file!")
+
+	//get the 'magnitude'-dimension
+	magniDimension = earthquakes.dimension(function(d){return d.properties.mag;})
+	
+	//filter the earthquakes in relation to the 'magnitudes' by using the corresponding dimension
+	magniDimension.filter(function(d){return (d >= magniExt[0] && d <= magniExt[1]);})
+
+	//test if it worked...count the earthquakes again...when number is smaller--> success!
+	count = earthquakes.groupAll().reduceCount().value();
+	console.log("..."+ count +" eathquakes...after filtering!")
+
+	//get the geometries...by the 'geometry.coordinates'-dimension
+	var geoDimension = earthquakes.dimension(function(d) { return d.geometry.coordinates; }),
+		//...and exporting all corresponding elements
+		geoms = geoDimension.top(count);
+
+	//calculate the data-extent
+	minMax = [100000,0];
+	geoms.forEach(function(d){
+		if(d.properties.mag>minMax[1])minMax[1]=d.properties.mag;
+		if(d.properties.mag<minMax[0])minMax[0]=d.properties.mag;
+		//if(d.magnitude<[5])console.log(d);
+	})
+
+	//set two scales...one for the size of the point (-visualisations)
+	size = d3.scale.linear()
+	    .domain(minMax)
+	    .range([1,6]);
+	//...and a second for the color of the point (-visualisations)
+	color = d3.scale.linear()
+	    .domain(minMax)
+	    .range(colors.fill);
+	opacity = d3.scale.linear()
+	    .domain(minMax)
+	    .range([0.8,0.1]);
+	//add the points to the data-'overlay'
+	overLayer.addGeometries([],"path");	//normally not needed...kept for further implementations
+	overlay = overLayer.overlay;
+	points =  overlay.selectAll("circle").data(geoms).enter().append("circle").attr("id","circles").on("mouseover",transPoint);
+
+	//another test on how-to-use crossfilter...cool thing but unneccessary for this example...sum all magnitudes
+	//var mags = earthquakes.groupAll().reduceSum(function(fact) { return fact.properties.mag; }).value()
+	//console.log("The total of all magnitudes is: " + mags) 
+
+	reset();
+	map.on("viewreset", reset);//.on("move",function(){console.log(map.getCenter(),map.getZoom())})
+	/*kept for further implementations: overLayer.features.attr("class",function(d){if(d.type==="Polygon")return "overlay_poly"; else if(d.type==="MultiPolygon") return "overlay_multipoly"})
+			.attr("id","polys")
+			.on("mouseover",showInfo)
+			.on("mouseup",zoomToObject);*/
+
+     	function zoomToObject(d){
+		var local_bounds = d3.geo.bounds(d),
+		center = new L.LatLng(local_bounds[0][1]+((local_bounds[1][1]-local_bounds[0][1])/2),local_bounds[0][0]+((local_bounds[1][0]-local_bounds[0][0])/2)),
+		southWest = new L.LatLng(local_bounds[0][1], local_bounds[0][0]),
+		northEast = new L.LatLng(local_bounds[1][1], local_bounds[1][0]);
+		var local_bounds = new L.LatLngBounds(southWest, northEast);
+		map.setView( center, map.getBoundsZoom( local_bounds));
+	}
+
+})
+
+
+function reset(){
+	var start_time = Date.now();
+	
+	//show the points to everybody...we wanne see them ;-)
+	points.attr("r",function(d){return size(d.properties.mag)})
+		.attr("cx",function(d) {var data = overLayer.project(d.geometry.coordinates); return data[0]})
+		.attr("cy",function(d) {var data = overLayer.project(d.geometry.coordinates); return data[1]})
+		.attr("fill",function(d){return color(d.properties.mag)}).attr("opacity",function(d){return opacity(d.properties.mag)}).attr("stroke",colors.stroke[0])
+
+	//another possibility for setting the extent...but worked not correct
+	//console.log(d3.geo.bounds({type:"MultiPoint", coordinates:centroids}))
+	overLayer.resetView([[-180-10, -89], [180+10, 89]]);
+	overLayer.showAllFiltered(maximum);
+	
+	console.log("...visualising them took: "+((Date.now() - start_time)/1000).toFixed(4)+"s")
+}
+
+function transPoint(d){
+	points.transition().duration(500).ease("linear")
+		.attr("r",function(e){if(e.id==d.id)return size(e.properties.mag)*5; else return size(e.properties.mag)})
+		.attr("fill",function(e){if(e.id==d.id)return "#fff"; else return color(e.properties.mag)})
+		.attr("opacity",function(e){if(e.id==d.id)return 0.8; else return opacity(e.properties.mag)})
+		.attr("stroke",function(e){if(e.id==d.id)return colors.stroke[1]; else return colors.stroke[0]})
+	showInfo([d.properties.mag, d.geometry.coordinates[2], d.properties.place]);
+}
+
+function showInfo(value){
+	infoContainer.text("This earthquake had a magnitude of: "+value[0] + " - a depth of: "+ value[1] + " and was located at: "+ value[2])
+}
+
+function reShow(maxVal){
+	maximum = maxVal;	
+	overLayer.showAllFiltered(maxVal);		
+}
+
+
+</script>
+<footer>
+  <aside>June 02, 2013</aside>
+  <a href="../index.html" rel="author" class="myLinks">Ralf Klammer</a>
+</footer>
+</body>
+</html>

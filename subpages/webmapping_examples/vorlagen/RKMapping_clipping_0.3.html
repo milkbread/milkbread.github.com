@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <script src="http://d3js.org/d3.v3.min.js"></script> 
+ <script src="../static/topojson_v1.js"></script>
+ <script src="../static/RKMapping_0.4.js"></script>
+ <script src="../static/leaflet.js"></script>
+ <script src="../simplify_test/simplify_RK_1.0.js"></script>
+
+<style>
+  @import url(../static/myStyles.css);
+  @import url(../static/leaflet.css?0.5);
+
+ #map {
+   width: 660px;
+   height: 600px;
+  }
+ #table {
+   width: 300px;
+   height: 600px;
+overflow-x: auto;
+  overflow-y: auto;
+  }
+
+#polys:hover{
+ fill:rgba(200,0,0,0.8);
+}
+#polys{
+ stroke-width:1px;
+ stroke:rgba(255,255,255,1);
+}
+#polys2{
+ stroke-width:1px;
+ stroke:rgba(255,0,0,1);
+ fill:rgba(0,255,0,0.5)
+}
+.overlay_poly{
+ fill:rgba(100,100,100,0.3);
+}
+.overlay_multipoly{
+ fill:rgba(0,0,0,0.7);
+}
+#delaunay{
+ fill:none;
+ stroke:rgba(0,0,255,1);
+ stroke-width:1px;
+}
+#points{
+ fill:#000;;
+}
+</style>
+</head>
+<body>
+<h1>Heading</h1>
+<h1 class=sub>subheading</h1>
+
+<table border="1">
+  <tr>
+    <th><div id=map></div></th>
+    <th>Removed features<div id=table></div></th>
+  </tr>
+</table>
+
+<div>
+<input type=text id=maxVal name=maxVal onChange=reShow(value) value=0>
+</div>
+
+<script>
+var map = L.map('map').setView([49.5537, 7.7783], 8);//.setView([49.643, 8.66], 12);//.setView([51.25, 11], 6);
+	
+var stamen = L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.png', {attribution: 'Add some attributes here!'}).addTo(map);	
+var baseLayers = {"stamen": stamen};
+L.control.layers(baseLayers).addTo(map);
+
+var overLayer2 = new mapOverlay(map);
+var overLayer = new mapOverlay(map);
+var infoContainer = d3.select("body").append("info").text("This will show you some information!")
+d3.select("body").append("br")
+var mouseInfo = d3.select("body").append("info").text("")
+
+var simplify = d3.simplify()
+	.projection(function (x) {return x;});
+
+var maximum = 0;
+
+var table = d3.select("#table").append("table").attr("border", 1);
+var head_row = table.append("tr");
+head_row.append("td").text("Count")
+head_row.append("td").text("Type")
+head_row.append("td").text("Parent_id")
+head_row.append("td").text("Name")
+head_row.append("td").text("Insider")
+head_row.append("td").text("Neighbors")
+	
+d3.json("static/vg250_clipped2_topo.json", function(error, topology) {
+	var pure_states = topology.objects.vg250_gem_clipped2;
+	pure_states.geometries.map(function(d){d.properties.GEN = replaceUmlaute(d.properties.GEN); return d;})
+
+	//get all arc-geometries of the selected objects 'pure_states'...can be simplified directly
+	var arcCollection = getArcs(topology, pure_states.geometries, [simplify, 0]);
+	//build the geometries using geometries in arcCollection
+	var polygons = getGeometries(pure_states.geometries, arcCollection)
+	//build a GeometryCollection, for the visualisation of features
+	var polyCollection = {type: 'GeometryCollection', geometries:polygons}
+	//build an indexed object, to find polygons easier
+	var polygons_indexed = {};
+	polygons.forEach(function(d){polygons_indexed[d.id]= d;})
+	//add neighbors info to the pure (has only arcs as geometry) features
+	pure_states.geometries = pure_states.geometries.map(function(d){
+		d.neighbors = polygons_indexed[d.id].neighbors;
+		return d;	
+	})
+//	console.log(arcCollection)
+	console.log(polygons.length)
+	
+//	console.log(arcCollection[42])
+	//console.log(polygons)
+	//console.log(polygons_indexed)
+
+
+	var test_geom = [], polygons2 = [];	
+	pure_states.geometries.forEach(function(d){
+		if(d.properties.GEN==='Pfungstadt' || d.properties.GEN==='Riedstadt' || d.properties.GEN==='Gross-Gerau' || d.properties.GEN==='Langen (Hessen)'){
+//		if(d.properties.GEN==='Rheinland-Pfalz' || d.properties.GEN==='Bayern'){
+//		if(d.properties.GEN==='Saarland' || d.properties.GEN==='Sachsen'){
+//			console.log("d: ",d); 
+			//find longest arc
+			var longest_neigh = findLongestArc(d.neighbors, arcCollection)
+			//resort the arcs and remove the longest arc
+			var redi_geom = reformPolygonArcs(longest_neigh, d.arcs)
+			//add 'geometry that should get clipped' to the geometry, whose shared arc was the longest
+			polygons2.push(clipArcs(longest_neigh, polygons_indexed, redi_geom))					
+		}
+		else return;
+	})
+	var filteredFeatures = [], counter = 0;
+	pure_states.geometries.forEach(function(d){
+		var parent_id = -1, name_ = d.properties.GEN;
+		if(d.type==='Polygon'){
+			readPolygon(d.arcs, parent_id);
+			
+		}else if (d.type==='MultiPolygon'){
+			if(d.properties.GEN=="Kaub" || d.properties.GEN=='Weisel')console.log(d)
+			//each Polygon in the array
+			parent_id = d.id;
+			d.arcs.forEach(function(e){
+				readPolygon(e, parent_id);
+			})
+			
+			
+		}
+	
+
+		function readPolygon(arcs, parent_id_){
+			var hole=false, insider=false;
+			//read the polygon and its holes
+			arcs.forEach(function(data,j){	
+				var length = getPolyLengthFromArcs(data);
+				if(length < 600){
+					var neighbors = countNeighbors(data, parent_id_)
+					if (j>0 && neighbors.length==0)hole=true;
+					else if (j>0 && neighbors.length>0)insider=true;
+					if(neighbors.length==1 && data.length==1)insider=true;
+					//if(hole==false && insider == false){
+						filteredFeatures.push({count: counter, type:d.type, parent_id: parent_id_, name: name_, hole:hole, insider:insider, neighbors: neighbors.length});
+						console.log(name_, neighbors, arcs.length, data.length)
+						counter++;
+
+						if(d.properties.GEN=="Kaub" || d.properties.GEN=='Weisel'){
+							console.log(pure_states.geometries.indexOf(d));
+							var currentGeom = pure_states.geometries[pure_states.geometries.indexOf(d)];
+							console.log(neighbors, j, currentGeom.arcs[j], data);
+							console.log(currentGeom.arcs.indexOf([data]))
+							
+
+						}
+					//}
+					//console.log(neighbors)				
+				}
+				
+			function getPolyLengthFromArcs(arcs_){
+				var length_ = 0;
+				for (var i=0; i<arcs_.length; i++){	
+					var arc_id = arcs_[i];
+					if(arc_id<0)arc_id=(arc_id*(-1))-1;
+					length_ = length_ + arcCollection[arc_id].length;
+				}
+				return length_;
+			
+			}
+			function countNeighbors(arcs_, parent_id__){
+				var neighbors_ = [];
+				for (var i=0; i<arcs_.length; i++){	
+					var arc_id = arcs_[i];
+					if(arc_id<0)arc_id=(arc_id*(-1))-1;
+					//console.log(arcCollection[arc_id])
+					if(arcCollection[arc_id].members.length==2){
+						if(arcCollection[arc_id].members[0].id==parent_id__)var neigh = arcCollection[arc_id].members[1];
+						else var neigh = arcCollection[arc_id].members[0];
+						neighbors_.push(neigh)
+					}
+				}
+				return neighbors_;
+			
+			}
+							
+			})
+		}
+		
+
+	})		
+	reshowTable(table, filteredFeatures);
+	function reshowTable(table_, features_){
+		features_.forEach(function(feature_){
+			var row = table_.append("tr");
+			row.append("td").text(feature_.count)
+			row.append("td").text(feature_.type)
+			row.append("td").text(feature_.parent_id)
+			row.append("td").text(feature_.name)
+			row.append("td").text(feature_.insider)
+			row.append("td").text(feature_.neighbors)
+		})
+	}
+
+	test_geom= getGeometries(polygons2, arcCollection)
+	//console.log(test_geom)
+
+	overLayer2.addGeometries(test_geom,"path");
+	overLayer.addGeometries(polygons,"path");
+
+	reset();
+	map.on("viewreset", reset);//.on("move",function(){console.log(map.getCenter(),map.getZoom())})
+	overLayer.features.attr("class",function(d){if(d.type==="Polygon")return "overlay_poly"; else if(d.type==="MultiPolygon") return "overlay_multipoly"})
+			.attr("id","polys")
+			.on("mouseover",showInfo)
+			.on("mouseup",zoomToObject);
+	overLayer2.features.attr("id","polys2")
+
+	function reset(){
+		var start_time = Date.now();
+		overLayer.resetView(d3.geo.bounds(polyCollection));
+		overLayer.showAllFiltered(maximum);
+		overLayer2.resetView(d3.geo.bounds(polyCollection));
+		overLayer2.showAllFiltered(maximum);
+		
+		console.log("initial load took: "+((Date.now() - start_time)/1000).toFixed(2)+"s")
+	}
+	function showInfo(value){
+		mouseInfo.text("Center: "+map.getCenter()+" Zoom: "+map.getZoom())
+		infoContainer.text("You hovered over: "+value.properties.GEN +' - Type: '+value.type)
+	}
+     	function zoomToObject(d){
+		var local_bounds = d3.geo.bounds(d),
+		center = new L.LatLng(local_bounds[0][1]+((local_bounds[1][1]-local_bounds[0][1])/2),local_bounds[0][0]+((local_bounds[1][0]-local_bounds[0][0])/2)),
+		southWest = new L.LatLng(local_bounds[0][1], local_bounds[0][0]),
+		northEast = new L.LatLng(local_bounds[1][1], local_bounds[1][0]);
+		var local_bounds = new L.LatLngBounds(southWest, northEast);
+		map.setView( center, map.getBoundsZoom( local_bounds));
+	}
+
+})
+
+function reShow(maxVal){
+	maximum = maxVal;	
+	overLayer.showAllFiltered(maxVal);		
+	overLayer2.showAllFiltered(maxVal);		
+}
+
+</script>
+<footer>
+  <aside>May 15, 2013</aside>
+  <a href="../index.html" rel="author" class="myLinks">Ralf Klammer</a>
+</footer>
+</body>
+</html>

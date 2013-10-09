@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<!--Source:	http://bl.ocks.org/mbostock/4060366
+		https://github.com/mbostock/d3/wiki/Voronoi-Geom-->
+<html>
+<head>
+ <title>Testing d3's voronoi and delaunay implementations</title>
+ <script src="http://d3js.org/d3.v3.min.js"></script> 
+ <script src="static/d3.geo.js"></script> 
+ <script src="static/DelaunayGroups.js"></script> 
+ <script src="simplify_test/topojson.v0_RK_1.0.js"></script>
+ <style>
+@import url(./static/myStyles.css);
+g{
+stroke:rgb(0%,0%,0%);
+stroke-width:1;
+
+}
+.delaunay:hover {
+   fill: green;
+   fill-opacity: .7;
+}
+.delaunay_alternative:hover {
+   fill: red;
+   fill-opacity: .7;
+}
+#states{
+fill:rgb(100%,100%,0%);
+}
+#germany{
+stroke:rgba(100%,100%,100%,0.2);
+stroke-width:1.5px;
+fill:None;
+}
+#points{
+fill:rgba(100%,100%,100%,0.2);
+stroke:None;
+}
+.cell {
+stroke:rgb(0%,0%,100%);
+fill:rgba(0%,0%,0%,0.2);
+}
+.delaunay{
+fill:rgba(0%,0%,0%,0.4);
+stroke:rgba(0%,100%,0%,0.4);
+}
+.delaunay_alternative{
+fill:rgba(100%,0%,0%,0.05);
+stroke:rgba(100%,0%,0%,0.05);
+}
+  .others{
+    height: 30px;
+    width:100px;
+    stroke: #000;
+  }
+#legend{
+ background: rgba(255,255,255,0.3);
+ border-radius: 10px;
+}
+#version_info{
+ background: rgba(255,0,0,0.3);
+ border-radius: 10px;
+}
+.bar{
+ background: rgba(0,0,0,0.3);
+}
+</style>
+</head>
+<body>
+<h1>D3 - Delaunay-triangles</h1>
+<h1 class=sub>(for german urban areas)</h1>
+<div id=text>
+<br>This application was made to test the detection of topologic depencies within polygonal data.
+<br>The underlying data are the urban areas of germany, downloaded from <a class="myLinks" href="http://www.naturalearthdata.com/http//www.naturalearthdata.com/download/10m/cultural/ne_10m_urban_areas.zip" target="_blank" class="myLinks">Natural Earth</a>
+<br>I calculated the centroids of each polygon and used these as base for the delaunay triangulation.
+<br>The visualisation of the delaunay triangles, indiciates now which geometries are topological neighbours within a well defined tolerance.
+<br>The tolerance is, within that implementation, used to analyse the length of the triangle edges. This could be also done to evaluate the area of the triangles...this will be done in a further implementation!
+<br><br><div id="legend">
+Triangles, with edge lenths:
+<br>shorter... <svg class="others"><rect class=delaunay x="10" y="20" width="60" height="15"/></svg><br>
+<br>longer... <svg class="others"><rect class=delaunay_alternative x="10" y="20" width="60" height="15"/></svg>...than tolerance<br>
+</div>
+<div id="version_info">
+In this, 4rd version, I just tried to make the code a little bit more readable. 
+<br>So, I outsourced the calculation and visualisation to the script: 'DelaunayGroups.js' 
+<br>Additionally, I found a failure in the processing of the points...'geoms.map(...)'...this bug is fixed since this version!
+</div>
+<table cellspacing="0">
+<tbody style="text-align: left">
+<tr><th><div id="mBar"></div></th><th><form>
+  <p>Which parameter should be used for clustering:</p>
+  <p>
+    <input type="radio" name="SimplyRadioButtons" value="length" onChange="callDefineClass(value)" align="left" checked> Length of triangle edges - Logic: ||<br>
+    <input type="radio" name="SimplyRadioButtons" value="length2" onChange="callDefineClass(value)" align="left"> Length of triangle edges - Logic: &&<br>
+    <input type="radio" name="SimplyRadioButtons" value="angle" onChange="callDefineClass(value)" align="left"> Inner angles - Logic: ||<br>
+    <input type="radio" name="SimplyRadioButtons" value="angle2" onChange="callDefineClass(value)" align="left"> Inner angles - Logic: && <br>
+    <input type="radio" name="SimplyRadioButtons" value="area" onChange="callDefineClass(value)" align="left"> Area <br>
+ </p>
+</form></th><th>Select a group:<br><div id="groupSel"></div></div></th>
+</tbody>
+</table>
+
+</div>
+<script>
+var 	width = 960,
+	height = 550,
+	projection = d3.geo.mercator()
+	    .scale(15000)
+	    .translate([50,2780]),
+	path = d3.geo.path()
+	    .projection(projection),
+	svg = d3.select("body").insert("svg", "h2")
+	    .attr("width", width)
+	    .attr("height", height),
+
+	points = new Array(),
+	germany = svg.append("g")
+	    .attr("id", "germany"),
+	states = svg.append("g")
+	    .attr("id", "states"),
+	point_layer = svg.append("g")
+	    .attr("id", "points"),
+	point_layer2 = svg.append("g")
+	    .attr("id", "points_inner"),
+	groups_layer = svg.append("g")
+	    .attr("id", "points_inner"),
+	cells = svg.append("g")
+	    .attr("id", "cells"),
+	delaunay = svg.append("g")
+	    .attr("id", "delaunay"),
+	original_polygons = new Array(),
+//	original_centroids = new Array(),
+	barWidth = 200,
+	barHeight = 25,
+	mouse_cache = 0,
+	tolerance = 21.5,
+	g2,
+	bar = d3.select("#mBar").append("svg")
+		.attr("width", barWidth)
+		.attr("height", barHeight),
+	selKind = "length";
+
+//this is the SELECT
+var 	tolForm = d3.select("#mBar").append("form")
+		.attr("name","toleranceForm"),
+	tolSelect = tolForm.append("select").attr("name","toleranceDropDown").attr("onChange","fieldSet(value)").attr("size","3"),
+	vals = new Array(), angle_vals = new Array(), area_vals = new Array();
+//different values for SELECT
+for (var i=0;i<40;i=i+0.5){vals.push(i.toFixed(1));}
+for (var i=-2;i<2;i=i+0.05){angle_vals.push(i.toFixed(2));}
+for (var i=0;i<150;i=i+1){area_vals.push(i.toFixed(1));}
+//make it
+makeSelection();
+//the function for the SELECT
+function fieldSet(val){tolerance = val; defineClass();setBarText();}
+//the function for the RADIOBUTTONS
+function makeSelection(){
+	if(selKind==="length" || selKind==="length2")var data = vals;
+	else if(selKind==="area")var data = area_vals;
+	else if (selKind==="angle" || selKind==="angle2")var data = angle_vals;
+	tolSelect.selectAll("option").remove();
+	tolSelect.selectAll("option").data(data).enter()
+		.append("option").attr("value",function(d){return d;}).text(function(d){return d;});
+}
+
+setBarText();
+var geoms;
+d3.json("static/ne_10m_urban_areas_germany_topo.json", function(error, topology) {
+  geoms = topojson.object(topology, topology.objects.ne_10m_urban_areas_germany).geometries;
+  states.selectAll("path")
+      .data(geoms)
+    .enter().append("path")
+      .attr("d", path);
+  var geom_german = topojson.object(topology, topology.objects.germany).geometries;
+  germany.selectAll("path")
+	.data(geom_german)
+     .enter().append("path")
+	.attr("d",path);
+	
+
+  geoms.map(function(d,i){
+	//if it is a Polygon
+	if (d.type === "Polygon"){ doProcesses(d.coordinates[0]); }
+	//if it is a MultiPolygon...only these two types are existing in that dataset
+	else {d.coordinates.map(function(e){ 
+		if (e.length===1)doProcesses(e[0]); 
+		else{e.map(function(f){doProcesses(f)})}
+	})}
+	function doProcesses(data){
+		var polygon = d3.geom.polygon(data);
+		original_polygons.push(polygon)
+		var centro = polygon.centroid();
+		points.push(projection(centro));}
+   });
+
+   addPoints("points",point_layer,5);
+   addPoints("points_inner",point_layer2,0.5);
+
+   doDelaunayVisualisation();
+});
+
+function doDelaunayVisualisation(){
+  var triangles = d3.geom.delaunay(points);
+  g2 = delaunay.selectAll("g")
+      .data(triangles)
+    .enter().append("g");
+  g2.append("path")
+      //.attr("class", "delaunay")
+      .attr("d", function(d, i) { 
+		return "M" + triangles[i].join("L") + "Z"; });
+	defineClass();
+}
+
+function callDefineClass(value){
+	selKind = value;
+	if(selKind==="angle" || selKind==="angle2")tolerance = 0.5;
+	else if (selKind==="length" || selKind==="length2")tolerance = 21.5;
+	else if (selKind==="area")tolerance = 50;
+	makeSelection();
+	setBarText();
+	defineClass();
+}
+//this function checks the delaunay triangles for a specific tolerance
+//..currently implemented as: testing the length of triangle edges
+var group_points = [];
+function defineClass(){
+	var inTris = new Array();
+	g2.attr("class",function(d){
+		if(selKind==="length" || selKind==="length2"){
+			var a,b,c;		
+	  		a = Math.sqrt(Math.pow(d[0][0]-d[1][0],2)+ Math.pow(d[0][1]-d[1][1],2));
+			b = Math.sqrt(Math.pow(d[1][0]-d[2][0],2)+ Math.pow(d[1][1]-d[2][1],2));
+			c = Math.sqrt(Math.pow(d[2][0]-d[0][0],2)+ Math.pow(d[2][1]-d[0][1],2));
+			if(selKind==="length"){
+				if (a > tolerance || b > tolerance || c > tolerance){
+					return "delaunay_alternative"; }
+				else {inTris.push(d); return "delaunay";}
+			}else if(selKind==="length2"){
+				if (a > tolerance && b > tolerance && c > tolerance){
+					return "delaunay_alternative"; }
+				else {inTris.push(d); return "delaunay";}}
+		}else if (selKind==="angle"){
+			var a=d[0].angle,b=d[1].angle,c=d[2].angle;
+			if (a > tolerance || b > tolerance || c > tolerance){
+				return "delaunay_alternative"; }
+			else {inTris.push(d); return "delaunay";}
+		}else if (selKind==="angle2"){
+			var a=d[0].angle,b=d[1].angle,c=d[2].angle;
+			if (a > tolerance && b > tolerance && c > tolerance){
+				return "delaunay_alternative"; }
+			else {inTris.push(d); return "delaunay";}
+		}else if (selKind==="area"){
+			var a=d3.geom.polygon(d).area();
+			if (a > tolerance){
+				return "delaunay_alternative"; }
+			else {inTris.push(d); return "delaunay";}
+		}
+	});
+	var groups = displayPoints(groups_layer, inTris, points);
+	
+}
+
+
+function setBarText(){
+	var tolerance_text = "Tolerance = " + tolerance;
+	bar.selectAll("text").remove();	
+	var barText = bar.append("text")
+		.attr("x", barWidth/2)
+		.attr("y", barHeight/2)
+		.text(tolerance_text)
+		.attr("font-family", "sans-serif")
+		.attr("font-size", "14px")
+		.style("text-anchor","middle")				
+		.attr("fill", "white");
+}
+function addPoints(type,layer,radius){
+  	layer.selectAll("circle")
+	    .data(points)
+	  .enter().append("circle")
+	    .attr("cx",function(d) { return d[0]})
+	    .attr("cy",function(d) { return d[1]})
+	    .attr("r",radius)
+	    .attr("class",type);
+}
+</script>
+<footer>
+  <aside>April 29, 2013</aside>
+  <a class="myLinks" href="../index.html" rel="author">Ralf Klammer</a>
+</footer>
+
+</body>
+</html>

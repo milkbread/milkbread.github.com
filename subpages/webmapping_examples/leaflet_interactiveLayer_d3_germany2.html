@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<!--Sourc: http://bost.ocks.org/mike/leaflet/-->
+<meta charset="utf-8">
+<title>D3 + Leaflet</title>
+<style>
+
+@import url(static/leaflet.css?0.5);
+@import url(./static/myStyles.css);
+
+#map {
+  width: 960px;
+  height: 700px;
+}
+
+path {
+  fill: #000;
+  fill-opacity: .2;
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+path:hover {
+  fill: green;
+  fill-opacity: .7;
+}
+
+
+
+</style>
+
+<h1>D3 + Leaflet + Simplify</h1>
+<div id=text>
+<br>Demonstrates the scale dependend simplified visualisation of the german administrative boundary.
+<br>Therefore, I combined these two examples:
+	<ul>
+		<li><a class="myLinks" href="http://bost.ocks.org/mike/leaflet/" target="_blank">D3+Leaflet</a></li>
+		<li><a class="myLinks" href="http://bost.ocks.org/mike/simplify/" target="_blank">D3+Simplify.js</a></li>
+	  </ul>
+Further ressources on TopoJSON:
+	<ul>
+		<li><a class="myLinks" href="https://github.com/mbostock/topojson/wiki" target="_blank">Documentation</a></li>
+		<li><a class="myLinks" href="http://mourner.github.com/simplify-js/" target="_blank">Demonstration</a></li>
+		<li><a class="myLinks" href="http://www.jasondavies.com/maps/simplify/" target="_blank">Preserving topology</a></li>
+	</ul>
+</div>
+
+<p id="map">
+
+
+
+<footer>
+  <aside>March 1, 2013</aside>
+  <a class="myLinks" href="../index.html" rel="author">Ralf Klammer</a>
+</footer>
+
+<script src="http://d3js.org/d3.v2.min.js?2.9.3"></script>
+<script src="static/leaflet.js"></script>
+<script src="simplify_test/simplify.js"></script>
+
+<script>
+
+//The map*********
+	var map = L.map('map').setView([51, 11], 6)
+	var cloudmade = L.tileLayer('http://{s}.tile.cloudmade.com/{key}/{styleId}/256/{z}/{x}/{y}.png', {
+			attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 CloudMade',
+			key: 'BC9A493B41014CAABB98F0471D759707',
+			styleId: 22677
+		}).addTo(map);	
+	var baseLayers = {"base": cloudmade};	
+	L.control.layers(baseLayers).addTo(map);
+//****************
+
+//################
+//Add an SVG to leaflets overlayPane...no width or height that has to be defined dynamically
+	var svg = d3.select(map.getPanes().overlayPane).append("svg"),
+		//g=group element...used to translate to top-left corner of leaflets origin
+		//leaflet-zoom-hide = element of leaflet.css
+	    g = svg.append("g").attr("class", "leaflet-zoom-hide");
+	console.log(map._size);
+	var mapFrame = d3.select(map.getPanes().overlayPane).append("svg")
+	    .attr("width", map._size.x)
+	    .attr("height", map._size.y);
+	var simplify = d3.simplify()
+		.projection(geographic);
+	var width = 960,
+	    height = parseInt(d3.select("#map").style("height"))
+	    formatArea = d3.format(".2r"),
+	    formatPercent = d3.format(".2%");
+	var minArea = 0;
+
+	var mySquare=mapFrame.append("svg:rect") .attr("x",0) .attr("y",100).attr("opacity",.5) .attr("width",20) .attr("height",20);
+	var text = svg.append("text")
+	    .attr("x", width / 2)
+	    .attr("y", height / 2)
+	    .attr("dy", "100%")
+	    .attr("text-anchor", "middle")
+	    .text("Hallo");
+	console.log(text);
+	mySquare.on("mouseup",reform);
+
+	//load GeoJson as feature collection = collection
+	d3.json("simplify_test/germany.json", function(collection) {
+	//d3.json("static/germany_states.json", function(collection) {
+		//convert GeoJson to SVG
+		var path = d3.geo.path()
+			.projection(project);
+		//path elements for each feature
+		var feature = g.selectAll("path")
+		    .data(collection.features)
+		  .enter().append("path");
+//		feature.transition().duration(1000);
+//		var geoms = new Array();
+		var bounds = d3.geo.bounds(collection);
+		//console.dir(feature);
+		for (var i=0;i<feature.length; i++){
+//			console.log(feature[i].length);
+			for (var j=0;j<feature[i].length; j++){
+				//console.log(feature[i][j].__data__.geometry);
+				var geom = feature[i][j].__data__.geometry;
+//				geoms[j] = (geom);
+				//var m = geom.coordinates.reduce(redPoly, 0);
+//				console.log(geom);
+				simplify(geom);
+			}
+		}
+		function redPoly(m, polygon){
+			return m + polygon.reduce(redLine, 0);}
+		function redLine(m, lineString){
+			return m + lineString.length;}
+		//feature.map(function(geometry){console.log(geometry);});
+		//simplify(us);
+		
+		map.on("viewreset", reset);
+		svg.on("mouseup",reload);
+		var pMin = 10,
+		pMax = 0;
+ 		reset();
+
+		function reload(){
+			console.log(map.getZoom());
+		}
+		
+		function reset(){
+					
+			//console.dir(console);
+			var bottomLeft = project(bounds[0]),
+			    topRight = project(bounds[1]);
+			console.log(bottomLeft);
+			svg .attr("width", topRight[0] - bottomLeft[0])
+			    .attr("height", bottomLeft[1] - topRight[1])
+			    .style("margin-left", bottomLeft[0] + "px")
+			    .style("margin-top", topRight[1] + "px");
+
+			g   .attr("transform", "translate(" + -bottomLeft[0] + "," + -topRight[1] + ")");
+			
+			var currentZoom = map.getZoom();
+//			console.log(currentZoom);
+//			feature.attr("d",path);
+			feature.transition()
+				.delay(5000);
+			feature.attr("d", path({
+			      type: "MultiPolygon",
+			      coordinates: geom.coordinates.map(mapPolygon)
+			    }));
+				
+				function lineFilter(point){
+					//console.log(point[2], pMax);
+					if (point[2] > pMax)pMax = point[2];
+					if (point[2] < pMin)pMin = point[2];
+					if (currentZoom < 2)return point[2]>1
+					else if (currentZoom == 2)return point[2]>0.5
+					else if (currentZoom>2 && currentZoom<5)return point[2]>0.05
+					else if (currentZoom==5)return point[2]>0.025
+					else if (currentZoom==6)return point[2]>0.001
+					else return point[2]>0
+					
+
+				}
+			    	function mapLinestring(lineString){
+					var line = lineString.filter(lineFilter);
+					//console.dir(line);
+					return line;}
+			    	function mapPolygon(polygon){
+					var poly = polygon.map(mapLinestring);
+					//console.dir(poly);
+					return poly;
+				}			
+		}
+//			console.log(pMin, pMax);		
+	});
+	//uses leaflet to convert between latlng and pixelcoords
+	function project(x) {
+	  //console.log(x);
+	  var point = map.latLngToLayerPoint(new L.LatLng(x[1], x[0]));
+	  //console.log(point);
+	  return [point.x, point.y];
+	}
+	//on principle, a senseless function,but I need it to add do not reproject coordinates on simplification
+	function geographic(x) {return x;}
+	function reform() {
+		mySquare .transition() 
+		.attr("width",10)
+		.attr("height",10)
+		//.style("fill","#fff")
+		.ease("bounce")
+		.duration(2000);
+	}
+</script>
+
+<script src="../highlight.min.js"></script>

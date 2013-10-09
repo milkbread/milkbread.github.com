@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<!--Sourc: https://github.com/danzel/Leaflet.utfgrid
+	http://blog.perrygeo.net/2012/02/24/utfgrids-with-openlayers-and-tilestache///
+-- streaming the UTF-Grid was not possible using the mapnik installation from ppa...as here mentioned: http://www.zqna.net/qna/imvuvi-tilestache-utf-grid-provider-is-having-unexpected-results.html
+...the UTF-coding seems to made wrong, I realised that while debugging, but had no idea how this effects my work or even how to avoid...so I also installed mapnik2 from source and it worked without any problem
+-- be aware, that you can only stream one utf-grid via tilestache at one time...if you want to do so, you have to make it on one style.xml!!!
+
+-- you have to start tilestache with:  ~/Software/TileStache/scripts/tilestache-server.py -c ~/Software/TileStache/press_freedom_utf-gridding.cfg
+
+--> 
+
+<html>
+<head>
+	<script src="static/leaflet.js"></script>
+	<script src="static/leaflet.utfgrid.js"></script>
+	<script type="text/javascript" src="static/myFunctions.js"></script>
+	<style>
+  @import url(static/leaflet.css?0.5);
+  @import url(./static/myStyles.css);
+  #map {
+   width: 960px;
+   height: 600px;
+  }
+
+
+</style>
+
+	<script>
+	
+	</script>
+</head>
+<body>
+
+
+<h1>Leaflet + UTF-Grid - TileStache</h1>
+<div id=text>
+This is a demo on how to get interactive information overlay with UTF-Grids streamed from a shapefile. 
+<br>The streamed GeoJSON-formatted files are provided by Tilestache! The detailled descriptions on how to implement this example, can be found in <a href="http://milkator.wordpress.com/" target="_blank" class="myLinks">my blog</a>.
+<br>Before this example works, remember to:
+	<ul>
+		<li>start up TileStache, thereabout like I do: <br>          ~/Software/TileStache/scripts/tilestache-server.py -~/Software/TileStache/press_freedom_utf-gridding.cfg</li><br>
+		<li>make sure, TileStache provides the correct URL: <a href="http://localhost:8080/press_freedom_utfgrid/0/0/0.json" target="_blank" class="myLinks">http://localhost:8080/press_freedom_utfgrid/0/0/0.json</a></li>
+	  </ul>
+<br>Now, you should be able to hover and get additional information about map features!<br>
+<br>These are the references that I used for this implementation:
+	<ul>
+		<li><a href="https://github.com/danzel/Leaflet.utfgrid" target="_blank" class="myLinks">Leaflet + UTF-Grids</a></li>
+		<li><a href="http://blog.perrygeo.net/2012/02/24/utfgrids-with-openlayers-and-tilestache" target="_blank" class="myLinks">UTF-Grids + TileStache</a></li>
+	  </ul>
+</div>
+
+<div id="map"></div>
+<div id="click2"></div>
+<div id="hover"></div>
+<footer>
+  <aside>March 27, 2013</aside>
+  <a href="../index.html" rel="author" class="myLinks">Ralf Klammer</a>
+</footer>
+<script>
+	
+		var mapbox = L.tileLayer('http://{s}.tiles.mapbox.com/v3/milkator.press_freedom/{z}/{x}/{y}.png', {attribution: 'Map data &copy; 2013 Natural Earth, Data &copy; 2013 <a href="http://www.reporter-ohne-grenzen.de/ranglisten/rangliste-2013/">ROG/RSF</a>'});
+
+		var cloudmade = L.tileLayer('http://{s}.tile.cloudmade.com/{key}/{styleId}/256/{z}/{x}/{y}.png', {
+			attribution: 'Map data &copy; 2011 OpenStreetMap contributors, Imagery &copy; 2011 CloudMade, Data &copy; 2013 <a href="http://www.reporter-ohne-grenzen.de/ranglisten/rangliste-2013/">ROG/RSF</a>',
+			key: 'BC9A493B41014CAABB98F0471D759707',
+			styleId: 22677
+		});
+
+
+		var utfGrid = new L.UtfGrid('http://localhost:8080/press_freedom_utfgrid/{z}/{x}/{y}.json?callback={cb}', {
+			resolution: 4
+			});
+
+		//two different versions of calling a function
+			//1st: defining it as separate function...needs a name
+		utfGrid.on('click', clicking) 
+			.on('mouseover', hovering)
+			//2nd: defining it directly...needs no name, just 'function'
+			.on('mouseout', function (e) {
+				//console.log('mouseout: ' + e.data.name);
+			});
+	
+		function hovering(e){
+			if (e.data) {
+				document.getElementById('hover').innerHTML = "<h4>World wide press freedom</h4>" +  (e ?
+			"<b>" + e.data.name + "</b><br />Ranking position: " + e.data.rank
+			: 'Hover over a state');
+			} else {
+				document.getElementById('hover').innerHTML = 'hover: nothing';
+			}
+			//console.log('mouseout: ' + e.data.admin);
+			var layer = e.target;
+
+		    	info.update(e);
+		}
+
+		function clicking(e){
+			console.log(e);
+			if (e.data) {
+				document.getElementById('click2').innerHTML = 'click: ' + e.data.rank;
+			} else {
+				document.getElementById('click2').innerHTML = 'click: nothing';
+			}
+			//console.log('mouseout: ' + e.data.admin);
+		}
+		function highlightFeature(e) {
+		    var layer = e.target;
+
+		    info.update(layer.feature.properties);
+		}		
+
+		var info = L.control();
+		info.options.position = 'bottomright';
+		info.onAdd = function (map) {
+		    this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+		    this.update();
+		    return this._div;
+		};
+
+		// method that we will use to update the control based on feature properties passed
+		info.update = function (props) {
+		    this._div.innerHTML = "<h4>World wide press freedom</h4>" +  (props ?
+			"<b>" + props.data.name + "</b><br />Ranking position: " + props.data.rank 
+			: 'Hover over a state'+"test");
+		};
+		//info.addTo(map);
+		
+
+		var map = L.map('map')
+				.setView([0, 0], 1)
+				.addLayer(utfGrid)
+				.addLayer(cloudmade)
+				.addLayer(mapbox)
+				.addControl(info);
+		var baseLayers = {
+					"base": cloudmade,
+					"press freedom" : mapbox
+				};
+		
+		L.control.layers(baseLayers).addTo(map);
+
+		
+</script>
+
+
+</body>
+</html>
