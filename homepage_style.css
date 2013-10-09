@@ -1,0 +1,40 @@
+	@import url(http://fonts.googleapis.com/css?family=Arapey);
+	heading {
+	  font-size: 500%;
+	}
+	#sub{font-size:100%;}
+	td{text-align:center;color:#fff;}
+	body {
+	  background: rgba(200,200,200,1);
+	  background-image:url("head_image.png");
+	background-repeat: no-repeat;
+  	background-attachment: fixed;
+	background-position:right top;
+	  color: #fff;
+	  font-family:Arapey;
+	  margin: 1em auto 4em auto;
+	  width: 1000px;
+	}
+	#frame_body{width: 960px; background: rgba(200,200,200,0.7); 
+	  }
+	#highlight{
+	  background: rgba(100,100,100,0.8);
+	  border-radius: 15px;
+	  padding-left: 10px;
+	}
+	#highlight_{
+	  background: rgba(100,100,100,0.8);
+	  border-radius: 15px;
+	}
+	.latest{
+ 		text-align: left;
+ 		color: #aaa;
+ 	}
+ 	#currentDisp{
+ 		text-align: center;
+ 		color: rgba(0,0,0,0.6);
+		text-shadow: 7px 8px 12px #444;
+ 	}
+	.myLinks:link{color:#fff;}
+	.myLinks:hover{opacity:0.5;}
+	.myLinks:visited{color: #ccc;}

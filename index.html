@@ -9,8 +9,98 @@
  </style>
 </head>
 <body>
-Hello World
+ <heading id='main_heading'> Ralf Klammer </heading><br>
+ <heading id="sub">Dipl.-Engineer for Cartography</heading>
+ <div id="highlight_">
+	<table border="0" width=1000px align='center'>
+	<tr>
+		<td>Publications</td>
+		<td>JavaScript<br>Webmapping</td>
+		<td>Webmapping<br>Templates</td>
+		<td>Processing</td>
+		<td>Python</td>
+		<td>Teachings</td>
+		<td>Contact</td>
+	</tr>
+	</table>
+ </div>
 
- 
+ <h2 class='latest' id='latest_'></h2>
+ <h2 class='latest' id='currentDisp'>Data-driven polygon simplification</h2>
+<div id='frame_container'>
+ <iframe id='content' width=1000px height=700px seamless></iframe>
+</div>
+
+ <script type="text/javascript">
+	var elem=document.getElementById('main_heading')
+	if (elem.style) elem.style.cursor='pointer';
+	var elem2=document.getElementById('highlight_')
+	if (elem2.style) elem2.style.cursor='pointer';
+	
+	d3.select('#main_heading').on('mousedown',function(){window.location.hash=''; window.location.reload();})
+
+	console.log(window.location.hash.replace('#',''))
+	changeCurrentDisp(window.location.hash.replace('#',''))
+		  
+	d3.selectAll('td').on('mouseover',inAction).on('mouseout',outAction).on('mousedown',downAction);
+	function inAction(){
+		highlightCategory(d3.select(this), '#000',0.5)
+	}
+	function outAction(){
+		highlightCategory(d3.select(this), '#fff',1)
+	}
+	function highlightCategory(selection, color, opacity){
+		selection.transition().duration(750).style('color',color).style('opacity',opacity);
+		var elem=document.getElementById('highlight')
+		if (elem.style) elem.style.cursor='pointer';
+	}
+	function downAction(page){
+		window.location.hash = d3.select(this).text();
+		changeCurrentDisp(d3.select(this).text());
+	}
+	function changeContent(value){
+		d3.select('#content').attr('src',value);
+		  
+	}
+	function changeCurrentDisp(selected){
+		d3.select('#latest_').text("");
+		switch(selected)
+		{
+		case 'JavaScriptWebmapping':
+		  d3.select('#currentDisp').text('See some representative examples of my JAVASCRIPT WEBMAPPING')
+		  changeContent('javascript.html');
+		  d3.select('#content').attr('height',1000);
+		  break;
+		case 'WebmappingTemplates':
+		  d3.select('#currentDisp').text('Find some TEMPLATES related to my JavaScript Webmapping')
+		  changeContent('vorlagen.html');
+		  break;
+		case 'Processing':
+		  d3.select('#currentDisp').text('Some Java-code, that I wrote with PROCESSING')
+		  changeContent('processing.html');
+		  break;
+		case 'Python':
+		  d3.select('#currentDisp').text('Some tools, that I wrote in PYTHON')
+		  changeContent('python.html');
+		  break;
+		case 'Publications':
+		  d3.select('#currentDisp').text('Check out all my PUBLICATIONS')
+		  changeContent('publications.html');
+		  break;
+		case 'Teachings':
+		  d3.select('#currentDisp').text("I do some TEACHINGS at the DUT and write web tutorials")
+		  changeContent('teachings.html');
+		  break;
+		case 'Contact':
+		  d3.select('#currentDisp').text("You like what I'm doing?!? CONTACT me!")
+		  changeContent('contact.html');
+		  break;
+		default:
+		  d3.select('#latest_').text("Recent 'bigger' project:");
+		  changeContent('http://bl.ocks.org/milkbread/raw/5957651/index.html');
+		}
+	}
+
+  </script>
 </body>
 </html>
