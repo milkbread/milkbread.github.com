@@ -14,22 +14,18 @@
  <heading id='main_heading'> Ralf Klammer </heading><br>
  <heading id="sub">Dipl.-Engineer for Cartography</heading>
  <div id="highlight_">
-	<table border="0" width=1000px align='center'>
-	<tr>
-		<td>Publications</td>
-		<td>JavaScript<br>Webmapping</td>
-		<td>Webmapping<br>Templates</td>
-		<td>Processing</td>
-		<td>Python</td>
-		<td>Teachings</td>
-		<td>Contact</td>
-	</tr>
-	</table>
+	<div title="Publications">Publications</div>
+	<div title="JavaScript Webmapping">JavaScript<br>Webmapping</div>
+	<div title="Webmapping Templates">Webmapping<br>Templates</div>
+	<div title="Processing">Processing</div>
+	<div title="Python">Python</div>
+	<div title="Teachings">Teachings</div>
+	<div title="Contact">Contact</div>
  </div>
 
  <h2 class='latest' id='latest_'></h2>
  <div id='frame_container'>
- 	<iframe id='content' width=1000px height=700px seamless></iframe>
+ 	<iframe id='content' width=100% height=100% seamless></iframe>
  </div>
 
  <script type="text/javascript">
@@ -41,20 +37,16 @@
 
 	changeCurrentDisp(window.location.hash.replace('#',''))
 
-	d3.selectAll('td')
+	d3.select("#highlight_").selectAll('div')
 		.on('mouseover',inAction)
 		.on('mouseout',outAction)
 		.on('mousedown',downAction);
 
 	function inAction(){
-		highlightCategory(d3.select(this), '#000',0.5)
+		d3.select(this).transition().duration(750).style('color','#C3FF05').style('opacity',.8);
 	}
 	function outAction(){
-		highlightCategory(d3.select(this), '#fff',1)
-	}
-	function highlightCategory(selection, color, opacity){
-		selection.transition().duration(750).style('color',color).style('opacity',opacity);
-		var elem=document.getElementById('highlight')
+		d3.select(this).transition().duration(750).style('color','#fff').style('opacity',.5);
 	}
 	function downAction(page){
 		window.location.hash = d3.select(this).text();

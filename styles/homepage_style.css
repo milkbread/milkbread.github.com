@@ -1,15 +1,7 @@
 	@import url(http://fonts.googleapis.com/css?family=Arapey);
 
-	heading {
-	  font-size: 500%;
-	}
-
-	#sub{
-		font-size:100%;
-	}
-
-	td{
-		text-align:center;color:#fff;
+	html, body {
+		height: 100%;
 	}
 
 	body {
@@ -21,30 +13,49 @@
 		color: #fff;
 		font-family:Arapey;
 		margin: 1em auto 4em auto;
-		width: 1000px;
 	}
 
-	#frame_body{
-		width: 960px;
+	heading {
+		font-size: 500%;
+	}
+
+	td{
+		text-align:center;color:#fff;
+	}
+
+	#sub{
+		font-size:100%;
+		padding: 0 0 4px 0;
+	}
+
+	#frame_container{
+		width: 100%;
+		height: 100%;
 		background: rgba(200,200,200,0.7);
 	}
 
 	#highlight{
-	  background: rgba(100,100,100,0.8);
-	  border-radius: 15px;
-	  padding-left: 10px;
+		background: rgba(100,100,100,0.8);
+		border-radius: 15px;
+		padding-left: 10px;
 	}
 
 	#highlight_{
-	  background: rgba(100,100,100,0.8);
-	  border-radius: 15px;
+		background: rgba(100,100,100,0.8);
+		border-radius: 15px;
+		padding: 6px;
 	}
 
-	.latest {
+	#highlight_ div {
+		color: #fff;
+		opacity: .5;
+		margin-left: 12px;
  		text-align: center;
- 		color: #999;
- 		text-shadow: 1px 1px #888;
- 	}
+ 		overflow: hidden;
+		display: inline-block;
+		width: 12.5%;
+		vertical-align: middle;
+	}
 
  	#currentDisp {
  		text-align: center;
@@ -55,6 +66,12 @@
  	#highlight_,
  	#main_heading {
  		cursor: pointer;
+ 	}
+
+	.latest {
+ 		text-align: center;
+ 		color: #999;
+ 		text-shadow: 1px 1px #888;
  	}
 
 	.myLinks:link{color:#fff;}
