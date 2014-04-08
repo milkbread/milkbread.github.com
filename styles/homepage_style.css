@@ -27,7 +27,7 @@
 	  border-radius: 15px;
 	}
 	.latest{
- 		text-align: left;
+ 		text-align: center;
  		color: #aaa;
  	}
  	#currentDisp{
@@ -38,7 +38,3 @@
 	.myLinks:link{color:#fff;}
 	.myLinks:hover{opacity:0.5;}
 	.myLinks:visited{color: #ccc;}
-
-	.latest {
-		text-align:center;
-	}
