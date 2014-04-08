@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
- <link rel="shortcut icon" 
+ <link rel="shortcut icon"
       href="https://github.com/milkbread/RK-CD/raw/master/favicon.ico">
- <script src="http://d3js.org/d3.v3.min.js"></script>
+ <script src="libs/d3.v3.min.js"></script>
  <link rel="stylesheet" href="styles/homepage_style.css" />
  <title>Ralf Klammer - Cartographer</title>
  <style>
@@ -28,7 +28,6 @@
  </div>
 
  <h2 class='latest' id='latest_'></h2>
- <h2 class='latest' id='currentDisp'>Data-driven polygon simplification</h2>
 <div id='frame_container'>
  <iframe id='content' width=1000px height=700px seamless></iframe>
 </div>
@@ -38,12 +37,11 @@
 	if (elem.style) elem.style.cursor='pointer';
 	var elem2=document.getElementById('highlight_')
 	if (elem2.style) elem2.style.cursor='pointer';
-	
+
 	d3.select('#main_heading').on('mousedown',function(){window.location.hash=''; window.location.reload();})
 
-	console.log(window.location.hash.replace('#',''))
 	changeCurrentDisp(window.location.hash.replace('#',''))
-		  
+
 	d3.selectAll('td').on('mouseover',inAction).on('mouseout',outAction).on('mousedown',downAction);
 	function inAction(){
 		highlightCategory(d3.select(this), '#000',0.5)
@@ -62,7 +60,7 @@
 	}
 	function changeContent(value){
 		d3.select('#content').attr('src',value);
-		  
+
 	}
 	function changeCurrentDisp(selected){
 		d3.select('#latest_').text("");
@@ -98,8 +96,8 @@
 		  changeContent('subpages/contact.html');
 		  break;
 		default:
-		  d3.select('#latest_').text("Recent 'bigger' project:");
-		  changeContent('http://bl.ocks.org/milkbread/raw/5957651/index.html');
+		  d3.select('#latest_').text("'Coding and mapping ... that\'s my passion!'");
+		  // changeContent('http://bl.ocks.org/milkbread/raw/5957651/index.html');
 		}
 	}
 
