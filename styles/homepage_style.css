@@ -1,40 +1,62 @@
 	@import url(http://fonts.googleapis.com/css?family=Arapey);
+
 	heading {
 	  font-size: 500%;
 	}
-	#sub{font-size:100%;}
-	td{text-align:center;color:#fff;}
-	body {
-	  background: rgba(200,200,200,1);
-	  background-image:url("https://raw.github.com/milkbread/RK-CD/master/head_image.png");
-	background-repeat: no-repeat;
-  	background-attachment: fixed;
-	background-position:right top;
-	  color: #fff;
-	  font-family:Arapey;
-	  margin: 1em auto 4em auto;
-	  width: 1000px;
+
+	#sub{
+		font-size:100%;
 	}
-	#frame_body{width: 960px; background: rgba(200,200,200,0.7);
-	  }
+
+	td{
+		text-align:center;color:#fff;
+	}
+
+	body {
+		background: rgba(200,200,200,1);
+		background-image:url("https://raw.github.com/milkbread/RK-CD/master/head_image.png");
+		background-repeat: no-repeat;
+		background-attachment: fixed;
+		background-position:right top;
+		color: #fff;
+		font-family:Arapey;
+		margin: 1em auto 4em auto;
+		width: 1000px;
+	}
+
+	#frame_body{
+		width: 960px;
+		background: rgba(200,200,200,0.7);
+	}
+
 	#highlight{
 	  background: rgba(100,100,100,0.8);
 	  border-radius: 15px;
 	  padding-left: 10px;
 	}
+
 	#highlight_{
 	  background: rgba(100,100,100,0.8);
 	  border-radius: 15px;
 	}
-	.latest{
+
+	.latest {
  		text-align: center;
- 		color: #aaa;
+ 		color: #999;
+ 		text-shadow: 1px 1px #888;
  	}
- 	#currentDisp{
+
+ 	#currentDisp {
  		text-align: center;
  		color: rgba(0,0,0,0.6);
 		text-shadow: 7px 8px 12px #444;
  	}
+
+ 	#highlight_,
+ 	#main_heading {
+ 		cursor: pointer;
+ 	}
+
 	.myLinks:link{color:#fff;}
 	.myLinks:hover{opacity:0.5;}
 	.myLinks:visited{color: #ccc;}

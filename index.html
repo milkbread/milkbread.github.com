@@ -33,16 +33,19 @@
  </div>
 
  <script type="text/javascript">
-	var elem=document.getElementById('main_heading')
-	if (elem.style) elem.style.cursor='pointer';
-	var elem2=document.getElementById('highlight_')
-	if (elem2.style) elem2.style.cursor='pointer';
-
-	d3.select('#main_heading').on('mousedown',function(){window.location.hash=''; window.location.reload();})
+	d3.select('#main_heading')
+		.on('mousedown',function(){
+			window.location.hash='';
+			window.location.reload();
+	})
 
 	changeCurrentDisp(window.location.hash.replace('#',''))
 
-	d3.selectAll('td').on('mouseover',inAction).on('mouseout',outAction).on('mousedown',downAction);
+	d3.selectAll('td')
+		.on('mouseover',inAction)
+		.on('mouseout',outAction)
+		.on('mousedown',downAction);
+
 	function inAction(){
 		highlightCategory(d3.select(this), '#000',0.5)
 	}
@@ -52,7 +55,6 @@
 	function highlightCategory(selection, color, opacity){
 		selection.transition().duration(750).style('color',color).style('opacity',opacity);
 		var elem=document.getElementById('highlight')
-		if (elem.style) elem.style.cursor='pointer';
 	}
 	function downAction(page){
 		window.location.hash = d3.select(this).text();
@@ -60,7 +62,6 @@
 	}
 	function changeContent(value){
 		d3.select('#content').attr('src',value);
-
 	}
 	function changeCurrentDisp(selected){
 		d3.select('#latest_').text("");
@@ -101,22 +102,19 @@
 		  changeContent('http://bl.ocks.org/milkbread/raw/10129030/index.html');
 		}
 	}
+ </script>
 
-  </script>
+ <script type="text/javascript">
+	// This is the GOOGLE ANALYTICS stuff
+	var _gaq = _gaq || [];
+	_gaq.push(['_setAccount', 'UA-43283250-1']);
+	_gaq.push(['_trackPageview']);
 
-
-<script type="text/javascript">
-
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', 'UA-43283250-1']);
-  _gaq.push(['_trackPageview']);
-
-  (function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-  })();
-
-</script>
+	(function() {
+	var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+	ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+	var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	})();
+ </script>
 </body>
 </html>
