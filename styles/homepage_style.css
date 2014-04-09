@@ -5,14 +5,17 @@ html, body {
 }
 
 body {
-	background: rgba(200,200,200,1);
+	color: #fff;
+	font-family:Arapey;
+	margin: 1em auto 4em auto;
+}
+
+body#main_site {
+	background: rgba(200,200,200,.5);
 	background-image:url("https://raw.github.com/milkbread/RK-CD/master/head_image.png");
 	background-repeat: no-repeat;
 	background-attachment: fixed;
 	background-position:right top;
-	color: #fff;
-	font-family:Arapey;
-	margin: 1em auto 4em auto;
 }
 
 heading {
@@ -35,7 +38,6 @@ heading,
 #frame_container {
 	width: 100%;
 	height: 100%;
-	background: rgba(200,200,200,0.7);
 }
 
 #toolbar {
@@ -56,22 +58,22 @@ heading,
 	vertical-align: middle;
 }
 
-	#currentDisp {
-		text-align: center;
-		color: rgba(0,0,0,0.6);
+#currentDisp {
+	text-align: center;
+	color: rgba(0,0,0,0.6);
 	text-shadow: 7px 8px 12px #444;
-	}
+}
 
-	#toolbar,
-	#main_heading {
-		cursor: pointer;
-	}
+#toolbar,
+#main_heading {
+	cursor: pointer;
+}
 
 .background {
 	background: rgba(100,100,100,0.8);
-	border-radius: 15px;
+	border-radius: 8px;
 	padding: 2px 0 2px 10px;
-	margin-bottom: 8px;
+	margin: 0 20px 8px 20px;
 }
 
 .latest {
