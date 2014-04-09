@@ -1,89 +1,93 @@
-	@import url(http://fonts.googleapis.com/css?family=Arapey);
+@import url(http://fonts.googleapis.com/css?family=Arapey);
 
-	html, body {
-		height: 100%;
+html, body {
+	height: 100%;
+}
+
+body {
+	background: rgba(200,200,200,1);
+	background-image:url("https://raw.github.com/milkbread/RK-CD/master/head_image.png");
+	background-repeat: no-repeat;
+	background-attachment: fixed;
+	background-position:right top;
+	color: #fff;
+	font-family:Arapey;
+	margin: 1em auto 4em auto;
+}
+
+heading {
+	font-size: 500%;
+}
+
+td {
+	text-align:center;color:#fff;
+}
+
+heading,
+#sub {
+	padding-left: 10px;
+}
+
+#sub {
+	font-size:100%;
+}
+
+#frame_container {
+	width: 100%;
+	height: 100%;
+	background: rgba(200,200,200,0.7);
+}
+
+#toolbar {
+	background: rgba(100,100,100,0.8);
+	border-radius: 15px;
+	padding: 6px;
+	margin: 8px 4px 0 4px;
+}
+
+#toolbar div {
+	color: #fff;
+	opacity: .5;
+	margin-left: 12px;
+		text-align: center;
+		overflow: hidden;
+	display: inline-block;
+	width: 12.5%;
+	vertical-align: middle;
+}
+
+	#currentDisp {
+		text-align: center;
+		color: rgba(0,0,0,0.6);
+	text-shadow: 7px 8px 12px #444;
 	}
 
-	body {
-		background: rgba(200,200,200,1);
-		background-image:url("https://raw.github.com/milkbread/RK-CD/master/head_image.png");
-		background-repeat: no-repeat;
-		background-attachment: fixed;
-		background-position:right top;
-		color: #fff;
-		font-family:Arapey;
-		margin: 1em auto 4em auto;
+	#toolbar,
+	#main_heading {
+		cursor: pointer;
 	}
 
-	heading {
-		font-size: 500%;
+.background {
+	background: rgba(100,100,100,0.8);
+	border-radius: 15px;
+	padding: 2px 0 2px 10px;
+	margin-bottom: 8px;
+}
+
+.latest {
+		text-align: center;
+		color: #999;
+		text-shadow: 1px 1px #888;
 	}
 
-	td{
-		text-align:center;color:#fff;
-	}
+p.notice {
+	color:rgb(100,0,0);
+}
 
-	#sub{
-		font-size:100%;
-		padding: 0 0 4px 0;
-	}
+p.highlight {
+	color:rgb(0,255,0);
+}
 
-	#frame_container{
-		width: 100%;
-		height: 100%;
-		background: rgba(200,200,200,0.7);
-	}
-
-	.background,
-	#highlight{
-		background: rgba(100,100,100,0.8);
-		border-radius: 15px;
-		padding: 2px 0 2px 10px;
-		margin-bottom: 8px;
-	}
-
-	#toolbar{
-		background: rgba(100,100,100,0.8);
-		border-radius: 15px;
-		padding: 6px;
-	}
-
-	#toolbar div {
-		color: #fff;
-		opacity: .5;
-		margin-left: 12px;
- 		text-align: center;
- 		overflow: hidden;
-		display: inline-block;
-		width: 12.5%;
-		vertical-align: middle;
-	}
-
- 	#currentDisp {
- 		text-align: center;
- 		color: rgba(0,0,0,0.6);
-		text-shadow: 7px 8px 12px #444;
- 	}
-
- 	#toolbar,
- 	#main_heading {
- 		cursor: pointer;
- 	}
-
-	.latest {
- 		text-align: center;
- 		color: #999;
- 		text-shadow: 1px 1px #888;
- 	}
-
-	p.notice {
-		color:rgb(100,0,0);
-	}
-
-	p.highlight {
-		color:rgb(0,255,0);
-	}
-
-	.myLinks:link{color:#fff;}
-	.myLinks:hover{opacity:0.5;}
-	.myLinks:visited{color: #ccc;}
+.myLinks:link{color:#fff;}
+.myLinks:hover{opacity:0.5;}
+.myLinks:visited{color: #ccc;}
