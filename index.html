@@ -13,7 +13,7 @@
 <body>
  <heading id='main_heading'> Ralf Klammer </heading><br>
  <heading id="sub">Dipl.-Engineer for Cartography</heading>
- <div id="highlight_">
+ <div id="toolbar">
 	<div title="Publications">Publications</div>
 	<div title="JavaScript Webmapping">JavaScript<br>Webmapping</div>
 	<div title="Webmapping Templates">Webmapping<br>Templates</div>
@@ -37,7 +37,7 @@
 
 	changeCurrentDisp(window.location.hash.replace('#',''))
 
-	d3.select("#highlight_").selectAll('div')
+	d3.select("#toolbar").selectAll('div')
 		.on('mouseover',inAction)
 		.on('mouseout',outAction)
 		.on('mousedown',downAction);

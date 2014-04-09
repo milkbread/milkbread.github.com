@@ -40,13 +40,13 @@
 		padding-left: 10px;
 	}
 
-	#highlight_{
+	#toolbar{
 		background: rgba(100,100,100,0.8);
 		border-radius: 15px;
 		padding: 6px;
 	}
 
-	#highlight_ div {
+	#toolbar div {
 		color: #fff;
 		opacity: .5;
 		margin-left: 12px;
@@ -63,7 +63,7 @@
 		text-shadow: 7px 8px 12px #444;
  	}
 
- 	#highlight_,
+ 	#toolbar,
  	#main_heading {
  		cursor: pointer;
  	}
