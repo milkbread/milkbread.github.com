@@ -76,6 +76,14 @@
  		text-shadow: 1px 1px #888;
  	}
 
+	p.notice {
+		color:rgb(100,0,0);
+	}
+
+	p.highlight {
+		color:rgb(0,255,0);
+	}
+
 	.myLinks:link{color:#fff;}
 	.myLinks:hover{opacity:0.5;}
 	.myLinks:visited{color: #ccc;}
