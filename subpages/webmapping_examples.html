@@ -1,15 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
- <script src="http://d3js.org/d3.v3.min.js"></script>
- <link rel="stylesheet" href="../styles/homepage_style.css" />
  <title>Ralf Klammer - Webmapping</title>
- <style>
- </style>
+ <link rel="stylesheet" href="../styles/homepage_style.css" />
 </head>
 <body id='frame_body'>
-	
-	<div id="highlight">
+	<div class="background">
 	  <ul>
 		<li><a class="myLinks" href="webmapping_examples/leaflet_markercluster.html">Leaflet + MarkerCluster - test with glaciers</a></li>
 		<li><a class="myLinks" href="http://tiles.mapbox.com/milkator/map/press_freedom#2.00/34.6/6.7">TileMill - Mapbox - provides simple interaction requiring less previous knowledge</a></li>
@@ -21,17 +17,17 @@
 	<div id="version_info">!!!Caution!!! <br>In connection with D3...please note that different versions are used!!!<br>Difference? - objects-function (v0) replaced to feature-function (v1)</div>
 		<li>Test with animated linear feature simplification</li>
 		<ul>First test implementations<ul>
-			<li><a class="myLinks" href="webmapping_examples/simplify_test/simplify_test.html">(V1) d3 - Simplify (using a German Polygon)</a></li>	  
+			<li><a class="myLinks" href="webmapping_examples/simplify_test/simplify_test.html">(V1) d3 - Simplify (using a German Polygon)</a></li>
 			<li><a class="myLinks" href="webmapping_examples/leaflet_interactiveLayer_d3_germany2.html">(V2) d3 - Leaflet - Simplify</a></li>
-			<li><a class="myLinks" href="webmapping_examples/leaflet_interactiveLayer_d3_germany2_transition.html">(V3) d3 - Leaflet - Simplify + slider</a></li>	  
-			<li><a class="myLinks" href="webmapping_examples/d3-simplification.html">(V4) d3 - Leaflet - Simplify + slider + scaledependency</a></li>	
-			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_linestrings.html">(V5) d3 - Leaflet  - Simplify + slider + scaledependency</a></li>  
-			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson.html">(V6-var1) d3 - Leaflet  - Simplify - TopoJSON<obj>.object</obj> + slider + scaledependency -- without consistency</a></li>  
-			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson2.html">(V6-var2) d3 - Leaflet  - Simplify - TopoJSON<mesh>.mesh</mesh> + slider + scaledependency -- without consistency</a></li>  
-			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson3.html">(V6-var3) d3 - Leaflet  - Simplify - TopoJSON<mesh>.mesh</mesh> + slider + scaledependency -- keeping topologic consistency</a></li>  
-			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson4.html">(V6-var4) d3 - Leaflet  - Simplify - TopoJSON<mesh>.mesh</mesh> + slider + scaledependency -- consistency + anchor area</a></li>  
-			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson5.html">(V6-var5) d3 - Leaflet  - Simplify - TopoJSON<mesh>.mesh</mesh> + slider + scaledependency -- consistency + anchor area + land,states or all</a></li>  
-			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson6.html">(V6-var6) d3 - Leaflet  - Simplify - TopoJSON<obj>.object</obj> + slider + scaledependency -- consistency (like in V6-var3)</a></li>  
+			<li><a class="myLinks" href="webmapping_examples/leaflet_interactiveLayer_d3_germany2_transition.html">(V3) d3 - Leaflet - Simplify + slider</a></li>
+			<li><a class="myLinks" href="webmapping_examples/d3-simplification.html">(V4) d3 - Leaflet - Simplify + slider + scaledependency</a></li>
+			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_linestrings.html">(V5) d3 - Leaflet  - Simplify + slider + scaledependency</a></li>
+			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson.html">(V6-var1) d3 - Leaflet  - Simplify - TopoJSON<obj>.object</obj> + slider + scaledependency -- without consistency</a></li>
+			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson2.html">(V6-var2) d3 - Leaflet  - Simplify - TopoJSON<mesh>.mesh</mesh> + slider + scaledependency -- without consistency</a></li>
+			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson3.html">(V6-var3) d3 - Leaflet  - Simplify - TopoJSON<mesh>.mesh</mesh> + slider + scaledependency -- keeping topologic consistency</a></li>
+			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson4.html">(V6-var4) d3 - Leaflet  - Simplify - TopoJSON<mesh>.mesh</mesh> + slider + scaledependency -- consistency + anchor area</a></li>
+			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson5.html">(V6-var5) d3 - Leaflet  - Simplify - TopoJSON<mesh>.mesh</mesh> + slider + scaledependency -- consistency + anchor area + land,states or all</a></li>
+			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson6.html">(V6-var6) d3 - Leaflet  - Simplify - TopoJSON<obj>.object</obj> + slider + scaledependency -- consistency (like in V6-var3)</a></li>
 			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson7.html">(V6-var7) d3 - Leaflet  - Simplify - TopoJSON<mesh>.mesh</mesh> + slider + scaledependency + topology -- 1st test of huge data (saxony)
 			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson8.html">(V6-var8) d3 - Leaflet  - Simplify - TopoJSON<mesh>.mesh</mesh> + slider + scaledependency + topology -- huge germany</a></li>
 			<li><a class="myLinks" href="webmapping_examples/d3-simplification_with_topojson10.html">(V6-var9) d3 - Leaflet  - Simplify - TopoJSON<mesh>.mesh</mesh> + slider + scaledependency + topology -- incl. rivers</a></li>
@@ -46,7 +42,7 @@
 			</ul>Time measurements<ul>
 			<li><a class="myLinks" href="webmapping_examples/vorlagen/RKMapping_simplify_0.5_timing.html">Analysing the benefit on performance for pre-generalised ArcGeometries</a></li><br>
 			<li><a class="myLinks" href="webmapping_examples/d3_simplification_bkdVSbbsr.html">Quick Demo to compare generalisation of BKG_250_municipalities to static BBSR_municipalities</a></li>
-			
+
 		</ul></ul>
 		<br>
 		<li><a class="myLinks" href="webmapping_examples/leaflet_interactiveLayer_utfGrid_combined_d3_test">d3 - Test of transitions</a></li>
@@ -57,7 +53,7 @@
 		<br>
 		<li><a class="myLinks" href="webmapping_examples/d3-voronoi.html">d3 - Test the voronoi and delaunay implementations of D3</a></li>
 		<li><a class="myLinks" href="webmapping_examples/d3-voronoi_on_data2.html">d3 - A 1st test on neighborhood-detection using d3.geom.delaunay</a></li>
-	
+
 		<li><a class="myLinks" href="webmapping_examples/d3-voronoi_on_german_data2.html">d3 - A more detailled test on neighborhood-detection of german urban areas using d3.geom.delaunay</a></li>
 		<ul>
 			<li><a class="myLinks" href="webmapping_examples/d3-voronoi_on_german_data2.1.html">2nd version - new ToleranceSelection & different clustering methods</a></li>
@@ -83,7 +79,7 @@
 			<li><a class="myLinks" href="webmapping_examples/d3-sorted_polygons4.html">Pre - Sorting polygons III- municipalities</a></li>
 			<li><a class="myLinks" href="webmapping_examples/d3-sorted_polygons5.html">Older version - Sorting polygons</a></li>
 			<li><a class="myLinks" href="webmapping_examples/d3-sorted_polygons6.1.html">'Cleaned Code' version - Sorting polygons</a></li>
-		
+
 		</ul>
 		<li><a class="myLinks" href="webmapping_examples/d3-sorted_polygons7.1.html">Sorted german administrative units --> Focus on Map</a></li>
 		<br>
@@ -91,19 +87,17 @@
 	    </ul>
 	</div>
 
-	
-	
 <script type="text/javascript">
+	// This is the GOOGLE ANALYTICS stuff
+	var _gaq = _gaq || [];
+	_gaq.push(['_setAccount', 'UA-43283250-1']);
+	_gaq.push(['_trackPageview']);
 
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', 'UA-43283250-1']);
-  _gaq.push(['_trackPageview']);
-
-  (function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-  })();
-
+	(function() {
+	var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+	ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+	var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	})();
 </script>
 </body>
+</html>
