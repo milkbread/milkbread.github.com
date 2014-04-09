@@ -17,7 +17,8 @@ body {
 
 body#main_site {
 	background: rgba(200,200,200,.5);
-	background-image:url("https://raw.github.com/milkbread/RK-CD/master/head_image.gif");
+	background-image:url("https://raw.github.com/milkbread/RK-CD/master/head_image.png");
+	background-size: 682px 378px;
 	background-repeat: no-repeat;
 	background-attachment: fixed;
 	background-position:right top;
