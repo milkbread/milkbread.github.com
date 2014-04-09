@@ -30,7 +30,7 @@
 
  <script type="text/javascript">
 	d3.select('#main_heading')
-		.on('mousedown',function(){
+		.on('click',function(){
 			window.location.hash='';
 			window.location.reload();
 	})
@@ -40,7 +40,7 @@
 	d3.select("#toolbar").selectAll('div')
 		.on('mouseover',inAction)
 		.on('mouseout',outAction)
-		.on('mousedown',downAction);
+		.on('click',downAction);
 
 	function inAction(){
 		d3.select(this).transition().duration(750).style('color','#C3FF05').style('opacity',.8);
