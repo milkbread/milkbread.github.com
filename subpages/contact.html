@@ -2,48 +2,48 @@
 <html>
 <head>
  <meta charset="utf-8" />
- <script src="http://d3js.org/d3.v3.min.js"></script>
- <script src="http://cdn.leafletjs.com/leaflet-0.6.1/leaflet.js"></script>
- <link rel="stylesheet" href="../styles/homepage_style.css" />
  <title>Ralf Klammer - Contact</title>
- <style>
- @import url(http://cdn.leafletjs.com/leaflet-0.6.1/leaflet.css);
- label{text-align: left;}
- </style>
+ <script src="http://cdn.leafletjs.com/leaflet-0.6.1/leaflet.js"></script>
+ <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.1/leaflet.css" />
+
+ <link rel="stylesheet" href="../styles/homepage_style.css" />
 </head>
 <body id='frame_body'>
-	
-	<div id="highlight">
+<div class="background">
 	<ul>
-	<li><b>Write a comment on one of my posts or tutorials:</b><br>
-		<ul>
-		<li><a class="myLinks" href='http://www.digital-geography.com/author/ralkla/' target="_blank">digital-geography.com</a></li>
-		<li><a class="myLinks" href='http://milkator.wordpress.com/' target="_blank">GeneralCarto</a></li>
-		</ul>
-
-	</li><br></ul>
-	</div>
-	<div id="highlight">
-	<ul>	
-	<li>
-	<b>Contact me at my <a class="myLinks" href='http://kartographie.geo.tu-dresden.de/institute/studentsPhD.php?l=eng&sub=2' target="_blank">DUT</a>-office!</b><br><br>
-
-	<i>Office: TIL S 11,&nbsp;&nbsp;&nbsp;Tel.: +49 (0351) 463-33276</i><br><a class="myLinks" href="mailto:ralf.klammer@tu-dresden.de">ralf.klammer [at] tu-dresden.de</a><br><br>
-	<div id="map" style="width: 400px; height: 300px;" align="center"></div>
-	<br><br>
-	Mail to:<br>
-	Technische Universität Dresden<br>
-	Helmholtzstr. 10<br>
-	01069 Dresden<br>
-  	</li><br>
+		<li>
+			<b>Contact or meet me in Dresden!</b><br><br>
+			<div id="map" style="width: 400px; height: 300px;" align="center"></div>
+			<ul>
+				<br>
+				<li>
+					<i>E-Mail to:</i><br>
+					<a class="myLinks" href="mailto:ralf.klammer@tu-dresden.de">ralf.klammer [at] tu-dresden.de</a><br><br>
+				</li>
+				<li>
+					<i>Mail to:</i><br>
+					Technische Universität Dresden<br>
+					Helmholtzstr. 10<br>
+					01069 Dresden<br>
+				</li>
+			</ul>
+  		</li>
 	</ul>
-	</div>
+</div>
+<div class="background">
+	<ul>
+		<li><b>Write a comment on one of my posts or tutorials:</b><br>
+			<ul>
+				<li><a class="myLinks" href='http://www.digital-geography.com/author/ralkla/' target="_blank">digital-geography.com</a></li>
+				<li><a class="myLinks" href='http://milkator.wordpress.com/' target="_blank">GeneralCarto</a></li>
+			</ul>
+		</li>
+	</ul>
+</div>
 
-	
-	
 <script>
-	var map = L.map('map').setView([ 51.0290, 13.7238], 17);
-	var stamen = L.tileLayer('http://{s}.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg', {
+	var map = L.map('map').setView([ 51.0120, 13.7932], 10);
+	var stamen = L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.jpg', {
 		attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>'}).addTo(map);
 	var osm_Mapnik = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		attribution: '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors'});
@@ -51,23 +51,21 @@
 	var controle = L.control.layers(baseLayers).addTo(map);
 	controle.setPosition('bottomleft')
 
-	var marker = L.marker([51.0295, 13.7244]).addTo(map);
+	var marker = L.marker([51.0120, 13.7932]).addTo(map);
 	marker.bindPopup('<p><b><i>Dipl.-Ing. Ralf Klammer</i></b><br><br><i>Office: TIL S 11,&nbsp;&nbsp;&nbsp;Tel.: +49 (0351) 463-33276</i></p>' )
 </script>
 
-
 <script type="text/javascript">
+	// This is the GOOGLE ANALYTICS stuff
+	var _gaq = _gaq || [];
+	_gaq.push(['_setAccount', 'UA-43283250-1']);
+	_gaq.push(['_trackPageview']);
 
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', 'UA-43283250-1']);
-  _gaq.push(['_trackPageview']);
-
-  (function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-  })();
-
+	(function() {
+	var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+	ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+	var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	})();
 </script>
 </body>
-
+</html>
