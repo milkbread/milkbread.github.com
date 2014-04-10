@@ -75,6 +75,20 @@ heading,
 	cursor: pointer;
 }
 
+#icons {
+	position: fixed;
+	top: 4px;
+	right: 8px;
+	width: auto;
+	display: inline-block;
+}
+
+#icons img {
+	background-color: rgb(200, 200, 200);
+	border-radius: 6px;
+	padding: 4px;
+}
+
 .background {
 	background: rgba(100,100,100,0.8);
 	border-radius: 8px;
